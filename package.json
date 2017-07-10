@@ -1,0 +1,26 @@
+{
+  "name": "cache-manager-fs-hash",
+  "version": "0.0.1",
+  "description": "file system store for node cache manager",
+  "keywords": [
+    "cache-manager",
+    "storage",
+    "filesystem"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sheershoff/node-cache-manager-fs-binary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sheershoff/node-cache-manager-fs-binary/issues"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Roland Starke",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^3.4.2"
+  }
+}
