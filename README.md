@@ -1,4 +1,4 @@
-# node-cache-manager-fs-hash
+# cache-manager-fs-hash
 
 Node Cache Manager store for Filesystem
 ========================================================
