@@ -11,7 +11,7 @@ function DiskStore(options) {
 
     this.options = {
         path: options.path || './cache',
-        ttl: (options.tll >= 0) ? options.tll : 60, //seconds
+        ttl: (options.ttl >= 0) ? options.ttl : 60, //seconds
     };
 
     // check storage directory for existence (or create it)
@@ -89,6 +89,7 @@ DiskStore.prototype.get = function (key, options, cb) {
     var that = this;
     fs.readFile(filename, 'utf8', function (err, dataString) {
         if (err) {
+            //return a miss
             if (cb) process.nextTick(cb.bind(null, null));
             return;
         }
@@ -132,11 +133,12 @@ DiskStore.prototype.get = function (key, options, cb) {
 
         function externalBuffersReadDone(err) {
             if (err) {
-                if (cb) process.nextTick(cb.bind(null, null));
+                if (cb) process.nextTick(cb.bind(null, err));
                 return;
             }
             if (data.expireTime <= Date.now()) {
-                if (cb) process.nextTick(cb.bind(null, null));
+                that.del(key); //delete expired cache, return miss
+                if (cb) process.nextTick(cb.bind(null, null, null));
                 return;
             }
             if (cb) process.nextTick(cb.bind(null, null, data.val));
