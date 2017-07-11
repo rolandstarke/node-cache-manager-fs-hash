@@ -51,7 +51,7 @@ DiskStore.prototype.set = function (key, val, options, cb) {
 
     function bufferReplacer(k, value) {
         //Buffers searilize to {data: [...], type: "Buffer"} since somewhere around node v0.12.17
-        if (value && value.type === 'Buffer' && value.data && value.data.length >= 0 /* only save bigger Buffers external, small ones can be inlined */) {
+        if (value && value.type === 'Buffer' && value.data && value.data.length >= 1024 /* only save bigger Buffers external, small ones can be inlined */) {
             var buffer = bufferFromArray(value.data);
             externalBuffers.push(buffer);
             return {
