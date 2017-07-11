@@ -28,7 +28,8 @@ Here is an example that demonstrates how to implement the Filesystem cache store
 // node cachemanager
 var cacheManager = require('cache-manager');
 // storage for the cachemanager
-var fsStore = require('../index.js'); //!!!!!!! replace with: cache-manager-fs-hash
+var fsStore = require('cache-manager-fs-hash');
+
 // initialize caching on disk
 var diskCache = cacheManager.caching({
     store: fsStore,
@@ -70,7 +71,7 @@ setInterval(function () {
 
 ## How it works
 
-The filename is determined by the md5 hash of the `key`. (The `key` is also saved in the file to detect hash collisions. In this case it will just return a cache miss). Writing, reading and deleting is done with .lock files so that multible instances of the library (e.g. using the cluster module) dosn't interfere each other.
+The filename is determined by the md5 hash of the `key`. (The `key` is also saved in the file to detect hash collisions. In this case it will just return a cache miss). Writing, reading, and deleting is performed with .lock files so that multiple instances of the library (e.g. using the cluster module) do not interfere with one another.
 
 ## Tests
 
