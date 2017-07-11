@@ -18,7 +18,7 @@ function slowMultiplyBy2(factor, callback) {
     }, 1000);
 }
 
-//create a cached verion of the slow function
+//create a cached version of the slow function
 function slowMultiplyBy2Cached(factor, callback) {
     diskCache.wrap(factor, function (cacheCallback) {
         slowMultiplyBy2(factor, cacheCallback);
@@ -34,6 +34,7 @@ setInterval(function () {
 }, 500);
 
 //doing heavy work...
+//answer 42
 //answer 42
 //answer 42
 //...
