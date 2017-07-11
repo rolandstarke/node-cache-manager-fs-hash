@@ -1,6 +1,7 @@
 var fs = require('fs');
 var crypto = require('crypto');
 var path = require('path');
+var lockFile = require('lockfile');
 
 
 /**
@@ -10,8 +11,9 @@ function DiskStore(options) {
     options = options || {};
 
     this.options = {
-        path: options.path || './cache',
-        ttl: (options.ttl >= 0) ? options.ttl : 60, //seconds
+        path: options.path || './cache', /* path for cached files  */
+        ttl: (options.ttl >= 0) ? options.ttl : 60, /* time before expiring in seconds */
+        maxsize: options.maxsize || Infinity /* max size in bytes on disk */ //@todo implement
     };
 
     // check storage directory for existence (or create it)
@@ -29,16 +31,18 @@ function DiskStore(options) {
  * set a key into the cache
  */
 DiskStore.prototype.set = function (key, val, options, cb) {
+    var that = this;
     if (typeof options === 'function') {
         cb = options;
         options = {};
     }
     options = options || {};
+    key = key.toString();
 
     // get ttl
-    var ttl = (options.ttl >= 0) ? options.ttl : this.options.ttl;
+    var ttl = (options.ttl >= 0) ? options.ttl : that.options.ttl;
 
-    var filename = this._getFilePathFromKey(key);
+    var filename = that._getFilePathFromKey(key);
 
     var data = {
         expireTime: Date.now() + ttl * 1000,
@@ -66,9 +70,12 @@ DiskStore.prototype.set = function (key, val, options, cb) {
 
     var dataString = JSON.stringify(data, bufferReplacer);
 
-    this._saveExternalBuffers(key, externalBuffers, function () {
-        fs.writeFile(filename, dataString, 'utf8', function (err) {
-            if (cb) return process.nextTick(cb.bind(null, err));
+    lockFile.lock(filename + '.lock', {}, function () {
+        that._saveExternalBuffers(key, externalBuffers, function () {
+            fs.writeFile(filename, dataString, 'utf8', function (err) {
+                if (cb) return process.nextTick(cb.bind(null, err));
+                lockFile.unlock(filename + '.lock');
+            });
         });
     });
 };
@@ -79,96 +86,110 @@ DiskStore.prototype.set = function (key, val, options, cb) {
  * get entry from cache
  */
 DiskStore.prototype.get = function (key, options, cb) {
+    var that = this;
     if (typeof options === 'function') {
         cb = options;
         options = {};
     }
     options = options || {};
+    key = key.toString();
 
-    var filename = this._getFilePathFromKey(key);
-    var that = this;
-    fs.readFile(filename, 'utf8', function (err, dataString) {
-        if (err) {
-            //return a miss
-            if (cb) process.nextTick(cb.bind(null, null));
-            return;
-        }
-        function bufferReceiver(k, value) {
-            if (value && value.type === 'Buffer' && value.data) {
-                return bufferFromArray(value.data);
-            }else if (value && value.type === 'ExternalBuffer' && typeof value.index === 'number' && typeof value.size === 'number') {
-                //JSON.parse is sync so we need to return a buffer sync, we will fill the buffer later
-                var buffer = bufferOfSize(value.size);
-                var filename = that._getFilePathFromKey(key, '-' + value.index + '.bin');
-                var readStream = fs.createReadStream(filename);
-                streamsTodoCounter++;
-
-                var writePos = 0;
-                readStream.on('data', function (chunk) {
-                    buffer.fill(chunk, writePos);
-                    writePos += chunk.length;
-                });
-                readStream.on('error', function (err) {
-                    streamError = err;
-                });
-                readStream.on('close', function () {
-                    streamsTodoCounter--;
-                    if (streamsTodoCounter === 0) {
-                        externalBuffersReadDone(streamError);
-                    }
-                });
-
-                return buffer;
-            } else {
-                return value;
-            }
-        }
-        var streamsTodoCounter = 0;
-        var streamError = null;
-        var data = JSON.parse(dataString, bufferReceiver);
-        if (streamsTodoCounter === 0) {
-            externalBuffersReadDone(streamError);
-        }
-
-
-        function externalBuffersReadDone(err) {
+    var filename = that._getFilePathFromKey(key);
+    lockFile.lock(filename + '.lock', {}, function () {
+        fs.readFile(filename, 'utf8', function (err, dataString) {
             if (err) {
-                if (cb) process.nextTick(cb.bind(null, err));
+                //return a miss
+                if (cb) process.nextTick(cb.bind(null, null));
                 return;
             }
-            if (data.expireTime <= Date.now()) {
-                that.del(key); //delete expired cache, return miss
-                if (cb) process.nextTick(cb.bind(null, null, null));
+            function bufferReceiver(k, value) {
+                if (value && value.type === 'Buffer' && value.data) {
+                    return bufferFromArray(value.data);
+                } else if (value && value.type === 'ExternalBuffer' && typeof value.index === 'number' && typeof value.size === 'number') {
+                    //JSON.parse is sync so we need to return a buffer sync, we will fill the buffer later
+                    var buffer = bufferOfSize(value.size);
+                    var filename = that._getFilePathFromKey(key, '-' + value.index + '.bin');
+                    var readStream = fs.createReadStream(filename);
+                    streamsTodoCounter++;
+
+                    var writePos = 0;
+                    readStream.on('data', function (chunk) {
+                        buffer.fill(chunk, writePos);
+                        writePos += chunk.length;
+                    });
+                    readStream.on('error', function (err) {
+                        streamError = err;
+                    });
+                    readStream.on('close', function () {
+                        streamsTodoCounter--;
+                        if (streamsTodoCounter === 0) {
+                            externalBuffersReadDone(streamError);
+                        }
+                    });
+
+                    return buffer;
+                } else {
+                    return value;
+                }
+            }
+            var streamsTodoCounter = 0;
+            var streamError = null;
+            var data = JSON.parse(dataString, bufferReceiver);
+            if (streamsTodoCounter === 0) {
+                externalBuffersReadDone(streamError);
+            }
+
+
+            function externalBuffersReadDone(err) {
+                lockFile.unlock(filename + '.lock');
+                if (err) {
+                    if (cb) process.nextTick(cb.bind(null, err));
+                    return;
+                }
+                if (data.expireTime <= Date.now()) {
+                    that.del(key); //delete expired cache, return miss
+                    if (cb) process.nextTick(cb.bind(null, null, null));
+                    return;
+                }
+                if (data.key !== key) {
+                    //hash collision, return miss
+                    if (cb) process.nextTick(cb.bind(null, null, null));
+                    return;
+                }
+                if (cb) process.nextTick(cb.bind(null, null, data.val));
                 return;
             }
-            if (cb) process.nextTick(cb.bind(null, null, data.val));
-            return;
-        }
+        });
     });
 };
 
 
 
 /**
- * delete an entry from the cache
+ * delete entry from cache
  */
 DiskStore.prototype.del = function (key, options, cb) {
-
+    var that = this;
     if (typeof options === 'function') {
         cb = options;
         options = {};
     }
+    options = options || {};
+    key = key.toString();
 
-    var that = this;
 
-    var filename = this._getFilePathFromKey(key);
-    fs.unlink(filename, function (err) {
-        if (err) {
-            if (cb) process.nextTick(cb.bind(null, err));
-            return;
-        }
-        deleteNextBinary(key, 0);
 
+    var filename = that._getFilePathFromKey(key);
+
+    lockFile.lock(filename + '.lock', {}, function () {
+        fs.unlink(filename, function (err) {
+            if (err) {
+                lockFile.unlock(filename + '.lock');
+                if (cb) process.nextTick(cb.bind(null, err));
+                return;
+            }
+            deleteNextBinary(key, 0);
+        });
     });
 
     function deleteNextBinary(key, i) {
@@ -176,6 +197,7 @@ DiskStore.prototype.del = function (key, options, cb) {
         fs.unlink(filename, function (err) {
             if (err) {
                 //we delete all ExternalBuffers in sequence. when there are no more files and try to delete a file that does not exiist we are done
+                lockFile.unlock(filename + '.lock');
                 if (cb) process.nextTick(cb.bind(null, null));
                 return;
             }
@@ -190,7 +212,7 @@ DiskStore.prototype.del = function (key, options, cb) {
  */
 DiskStore.prototype.reset = function (cb) {
     var that = this;
-    fs.readdir(this.options.path, function (err, files) {
+    fs.readdir(that.options.path, function (err, files) {
         if (err) {
             if (cb) process.nextTick(cb.bind(null, err));
             return;
@@ -210,14 +232,14 @@ DiskStore.prototype.reset = function (cb) {
 
 
 DiskStore.prototype._saveExternalBuffers = function (key, externalBuffers, cb, counter) {
-    counter = counter || 0;
     var that = this;
+    counter = counter || 0;
     var externalBuffer = externalBuffers.shift();
     if (!externalBuffer) {
         if (cb) process.nextTick(cb.bind(null, null));
         return;
     }
-    var filename = this._getFilePathFromKey(key, '-' + counter + '.bin');
+    var filename = that._getFilePathFromKey(key, '-' + counter + '.bin');
     fs.writeFile(filename, externalBuffer, function (err) {
         if (err) {
             if (cb) process.nextTick(cb.bind(null, err));
@@ -238,7 +260,7 @@ DiskStore.prototype._deleteFilesInCacheDir = function (files, cb) {
     }
     //check if the filename starts with a prefix, we don't want to delete all files if we share the cache folder with others
     if (file.match(/^diskstore-/)) {
-        fs.unlink(path.join(this.options.path, file), function (err) {
+        fs.unlink(path.join(that.options.path, file), function (err) {
             if (err && cb) {
                 cb = cb.bind(null, err);
             }
@@ -281,10 +303,14 @@ function bufferOfSize(size) {
 
 
 
-
-
-module.exports = {
-    create: function (args) {
-        return new DiskStore(args && args.options ? args.options : args);
-    }
-};
+/**
+ * construction of the disk storage
+ * @param {object} [args] options of disk store
+ * @param {string} args.path path for cached files
+ * @param {number} args.ttl time to life in seconds
+ * @param {number} args.maxsize max size in bytes on disk @todo implement
+ */
+exports.create = function (args) {
+    //to stay compatible with "cache-manager-fs" and "cache-manager-fs-binary" we allow to pass the options as `options` and `{options: options}`
+    return new DiskStore(args && args.options ? args.options : args);
+}

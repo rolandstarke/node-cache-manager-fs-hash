@@ -1,30 +1,3 @@
-# Node Cache Manager store for Filesystem
-
-A Filesystem store for the [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager) module
-
-
-
-## Installation
-
-@todo publish on npm
-```sh
-npm install cache-manager-fs-hash --save
-```
-
-
-## Features
-
-* Saves anything that is `JSON.stringify`-able to disk
-* Buffers are saved to seperate files (if they reach a certain size)
-* Works well with the cluster module
-* @todo Limit maximum size on disk
-
-
-## Usage example
-
-Here is an example that demonstrates how to implement the Filesystem cache store.
-
-```javascript
 // node cachemanager
 var cacheManager = require('cache-manager');
 // storage for the cachemanager
@@ -63,21 +36,4 @@ setInterval(function () {
 //doing heavy work...
 //answer 42
 //answer 42
-//answer 42
 //...
-
-```
-
-## How it works
-
-The filename is determined by the md5 hash of the `key`. (The `key` is also saved in the file to detect hash collisions. In this case it will just return a cache miss). Writing, reading and deleting is done with .lock files so that multible instances of the library (e.g. using the cluster module) dosn't interfere each other.
-
-## Tests
-
-```sh
-npm test
-```
-
-## License
-
-cache-manager-fs-hash is licensed under the MIT license.
