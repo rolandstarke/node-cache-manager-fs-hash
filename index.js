@@ -116,6 +116,7 @@ DiskStore.prototype.get = function (key, options, cb) {
         fs.readFile(filename, 'utf8', function (err, dataString) {
             if (err) {
                 //return a miss
+                lockFile.unlock(filename + '.lock');
                 if (cb) process.nextTick(cb.bind(null, null));
                 return;
             }

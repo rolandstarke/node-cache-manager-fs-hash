@@ -8,7 +8,7 @@ var diskCache = cacheManager.caching({
     path: __dirname + '/diskcache', /* path for cached files */
     ttl: 60 * 60, /* time to life in seconds */
     maxsize: 1000 * 1000 * 1000, /* max size in bytes on disk */
-    ignoreCacheErrors: true, /* ignore if JSON is invalid or files are deleted. just return a cache miss in this case*/
+    ignoreCacheErrors: false, /* ignore if JSON is invalid or files are deleted. just return a cache miss in this case*/
 });
 
 //slow function that should be cached
