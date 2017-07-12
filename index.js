@@ -13,7 +13,12 @@ function DiskStore(options) {
     this.options = {
         path: options.path || './cache', /* path for cached files  */
         ttl: (options.ttl >= 0) ? options.ttl : 60, /* time before expiring in seconds */
-        maxsize: options.maxsize || Infinity /* max size in bytes on disk */ //@todo implement
+        maxsize: options.maxsize || Infinity, /* max size in bytes on disk */ //@todo implement
+        lockFile: {
+            wait: 5 * 1000,
+            pollPeriod: 100,
+            stale: 60 * 1000
+        }
     };
 
     // check storage directory for existence (or create it)
@@ -70,11 +75,17 @@ DiskStore.prototype.set = function (key, val, options, cb) {
 
     var dataString = JSON.stringify(data, bufferReplacer);
 
-    lockFile.lock(filename + '.lock', {}, function () {
+    lockFile.lock(filename + '.lock', this.options.lockFile, function (err) {
+        if (err) {
+            lockFile.unlock(filename + '.lock');
+            if (cb) process.nextTick(cb.bind(null, err));
+            return;
+        }
         that._saveExternalBuffers(key, externalBuffers, function () {
             fs.writeFile(filename, dataString, 'utf8', function (err) {
-                if (cb) return process.nextTick(cb.bind(null, err));
                 lockFile.unlock(filename + '.lock');
+                if (cb) process.nextTick(cb.bind(null, err));
+                return;
             });
         });
     });
@@ -95,7 +106,13 @@ DiskStore.prototype.get = function (key, options, cb) {
     key = key.toString();
 
     var filename = that._getFilePathFromKey(key);
-    lockFile.lock(filename + '.lock', {}, function () {
+
+    lockFile.lock(filename + '.lock', this.options.lockFile, function (err) {
+        if (err) {
+            lockFile.unlock(filename + '.lock');
+            if (cb) process.nextTick(cb.bind(null, err));
+            return;
+        }
         fs.readFile(filename, 'utf8', function (err, dataString) {
             if (err) {
                 //return a miss
@@ -118,12 +135,13 @@ DiskStore.prototype.get = function (key, options, cb) {
                         writePos += chunk.length;
                     });
                     readStream.on('error', function (err) {
-                        streamError = err;
+                        streamsTodoCounter = -1;
+                        externalBuffersReadDone(err);
                     });
                     readStream.on('close', function () {
                         streamsTodoCounter--;
                         if (streamsTodoCounter === 0) {
-                            externalBuffersReadDone(streamError);
+                            externalBuffersReadDone(null);
                         }
                     });
 
@@ -133,10 +151,9 @@ DiskStore.prototype.get = function (key, options, cb) {
                 }
             }
             var streamsTodoCounter = 0;
-            var streamError = null;
             var data = JSON.parse(dataString, bufferReceiver);
             if (streamsTodoCounter === 0) {
-                externalBuffersReadDone(streamError);
+                externalBuffersReadDone(null);
             }
 
 
@@ -181,7 +198,12 @@ DiskStore.prototype.del = function (key, options, cb) {
 
     var filename = that._getFilePathFromKey(key);
 
-    lockFile.lock(filename + '.lock', {}, function () {
+    lockFile.lock(filename + '.lock', this.options.lockFile, function (err) {
+        if (err) {
+            lockFile.unlock(filename + '.lock');
+            if (cb) process.nextTick(cb.bind(null, err));
+            return
+        }
         fs.unlink(filename, function (err) {
             if (err) {
                 lockFile.unlock(filename + '.lock');
@@ -259,10 +281,10 @@ DiskStore.prototype._deleteFilesInCacheDir = function (files, cb) {
         return;
     }
     //check if the filename starts with a prefix, we don't want to delete all files if we share the cache folder with others
-    if (file.match(/^diskstore-/)) {
+    if (file.match(/^diskstore-.*\.(bin|json)$/)) {
         fs.unlink(path.join(that.options.path, file), function (err) {
             if (err && cb) {
-                cb = cb.bind(null, err);
+                cb = cb.bind(null, null);
             }
             that._deleteFilesInCacheDir(files, cb);
         });

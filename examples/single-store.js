@@ -5,9 +5,10 @@ var fsStore = require('../index.js'); //!!!!!!! replace with: cache-manager-fs-h
 // initialize caching on disk
 var diskCache = cacheManager.caching({
     store: fsStore,
-    path: 'diskcache', /* path for cached files */
+    path: __dirname + '/diskcache', /* path for cached files */
     ttl: 60 * 60, /* time to life in seconds */
     maxsize: 1000 * 1000 * 1000, /* max size in bytes on disk */
+    ignoreCacheErrors: true, /* ignore if JSON is invalid or files are deleted. just return a cache miss in this case*/
 });
 
 //slow function that should be cached

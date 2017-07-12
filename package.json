@@ -21,6 +21,7 @@
   "author": "Roland Starke",
   "license": "MIT",
   "devDependencies": {
+    "cache-manager": "^2.4.0",
     "mocha": "^3.4.2",
     "rimraf": "^2.6.1"
   },

@@ -2,15 +2,18 @@ var assert = require('assert');
 var fs = require('fs');
 var removeDir = require('rimraf');
 var store = require('../index.js');
-
-var cacheDirectory = 'test/cache';
+var cacheDirectory = __dirname + '/cache';
 
 
 describe('DiskStore', function () {
 
+    var cache;
     // remove test directory before each test
     beforeEach(function (done) {
-        removeDir(cacheDirectory, done);
+        removeDir(cacheDirectory, function(err){
+            cache = store.create({ path: cacheDirectory });
+            done(err);
+        });
     });
     // remove test directory after last test
     after(function (done) {
@@ -21,8 +24,7 @@ describe('DiskStore', function () {
     describe('construction', function () {
 
         it('should create cache dir', function () {
-            var s = store.create({ path: cacheDirectory });
-            assert(fs.existsSync(s.options.path));
+            assert(fs.existsSync(cache.options.path));
         });
 
     });
@@ -31,8 +33,7 @@ describe('DiskStore', function () {
     describe('get()', function () {
 
         it('should retun undefined on non existing key', function (done) {
-            var s = store.create({ path: cacheDirectory });
-            s.get('not existing key', function (err, data) {
+            cache.get('not existing key', function (err, data) {
                 assert.equal(null, err);
                 assert.equal(undefined, data);
                 done();
@@ -44,11 +45,10 @@ describe('DiskStore', function () {
     describe('set()', function () {
 
         it('should create a file for each saved value', function (done) {
-            var s = store.create({ path: cacheDirectory });
-            s.set('key', 'value', function (err) {
+            cache.set('key', 'value', function (err) {
                 assert.equal(null, err);
                 assert.equal(1, countFilesInCacheDirWithoutLockFiles());
-                s.set('key2', 'value', function (err) {
+                cache.set('key2', 'value', function (err) {
                     assert.equal(null, err);
                     assert.equal(2, countFilesInCacheDirWithoutLockFiles());
                     done();
@@ -57,8 +57,7 @@ describe('DiskStore', function () {
         });
 
         it('should save buffers in seperate files', function (done) {
-            var s = store.create({ path: cacheDirectory });
-            s.set('key', Buffer.alloc(100000), function (err) {
+            cache.set('key', Buffer.alloc(100000), function (err) {
                 assert.equal(null, err);
                 assert.equal(2, countFilesInCacheDirWithoutLockFiles());
                 done();
@@ -66,9 +65,8 @@ describe('DiskStore', function () {
         });
 
         it('should not modify the value while saving', function (done) {
-            var s = store.create({ path: cacheDirectory });
             var value = { int: 5, bool: true, float: 0.1, buffer: Buffer.from('Hello World!'), string: '#äö=)@€²(/&%$§"', largeBuffer: Buffer.alloc(100000) };
-            s.set('key', value, function (err) {
+            cache.set('key', value, function (err) {
                 assert.equal(null, err);
                 assert.deepEqual({ int: 5, bool: true, float: 0.1, buffer: Buffer.from('Hello World!'), string: '#äö=)@€²(/&%$§"', largeBuffer: Buffer.alloc(100000) }, value);
                 done();
@@ -80,11 +78,10 @@ describe('DiskStore', function () {
     describe('set() and get()', function () {
 
         it('should load the same value that was saved', function (done) {
-            var s = store.create({ path: cacheDirectory });
             var originalValue = { int: 5, bool: true, float: 0.1, buffer: Buffer.from('Hello World!'), string: '#äö=)@€²(/&%$§"', largeBuffer: Buffer.alloc(100000) };
-            s.set('key', originalValue, function (err) {
+            cache.set('key', originalValue, function (err) {
                 assert.equal(null, err);
-                s.get('key', function (err, loadedValue) {
+                cache.get('key', function (err, loadedValue) {
                     assert.equal(null, err);
                     assert.deepEqual(originalValue, loadedValue);
                     done();
@@ -93,9 +90,9 @@ describe('DiskStore', function () {
         });
 
         it('should not load expired data (global options)', function (done) {
-            var s = store.create({ path: cacheDirectory, ttl: 0 });
-            s.set('key', 'value', function (err) {
-                s.get('key', function (err, loadedValue) {
+            var cache = store.create({ path: cacheDirectory, ttl: 0 });
+            cache.set('key', 'value', function (err) {
+                cache.get('key', function (err, loadedValue) {
                     assert.equal(null, err);
                     assert.equal(undefined, loadedValue);
                     done();
@@ -104,9 +101,8 @@ describe('DiskStore', function () {
         });
 
         it('should not load expired data (set options)', function (done) {
-            var s = store.create({ path: cacheDirectory });
-            s.set('key', 'value', { ttl: 0 }, function (err) {
-                s.get('key', function (err, loadedValue) {
+            cache.set('key', 'value', { ttl: 0 }, function (err) {
+                cache.get('key', function (err, loadedValue) {
                     assert.equal(null, err);
                     assert.equal(undefined, loadedValue);
                     done();
@@ -119,9 +115,8 @@ describe('DiskStore', function () {
     describe('set() and del()', function () {
 
         it('should delete files when deleting a value', function (done) {
-            var s = store.create({ path: cacheDirectory });
-            s.set('key', Buffer.alloc(100000), function (err) {
-                s.del('key', function (err) {
+            cache.set('key', Buffer.alloc(100000), function (err) {
+                cache.del('key', function (err) {
                     assert.equal(null, err);
                     assert.equal(0, countFilesInCacheDirWithoutLockFiles());
                     done();
@@ -134,9 +129,8 @@ describe('DiskStore', function () {
     describe('set() and reset()', function () {
 
         it('should delete all files on reset', function (done) {
-            var s = store.create({ path: cacheDirectory });
-            s.set('key', 'value', function (err) {
-                s.reset(function (err) {
+            cache.set('key', 'value', function (err) {
+                cache.reset(function (err) {
                     assert.equal(null, err);
                     assert.equal(0, fs.readdirSync(cacheDirectory).length);
                     done();
@@ -153,5 +147,5 @@ describe('DiskStore', function () {
 function countFilesInCacheDirWithoutLockFiles() {
     return fs.readdirSync(cacheDirectory).filter(function (filename) {
         return !filename.match(/\.lock$/);
-    }).length
+    }).length;
 }
