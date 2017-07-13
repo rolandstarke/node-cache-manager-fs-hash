@@ -2,15 +2,13 @@
 
 A Filesystem store for the [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager) module
 
-
-
 ## Installation
 
 @todo publish on npm
+
 ```sh
 npm install cache-manager-fs-hash --save
 ```
-
 
 ## Features
 
@@ -18,7 +16,6 @@ npm install cache-manager-fs-hash --save
 * Buffers are saved to seperate files (if they reach a certain size)
 * Works well with the cluster module
 * @todo Limit maximum size on disk
-
 
 ## Usage example
 

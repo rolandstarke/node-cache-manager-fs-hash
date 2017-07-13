@@ -203,7 +203,7 @@ DiskStore.prototype.del = function (key, options, cb) {
         if (err) {
             lockFile.unlock(filename + '.lock');
             if (cb) process.nextTick(cb.bind(null, err));
-            return
+            return;
         }
         fs.unlink(filename, function (err) {
             if (err) {
@@ -336,4 +336,4 @@ function bufferOfSize(size) {
 exports.create = function (args) {
     //to stay compatible with "cache-manager-fs" and "cache-manager-fs-binary" we allow to pass the options as `options` and `{options: options}`
     return new DiskStore(args && args.options ? args.options : args);
-}
+};
