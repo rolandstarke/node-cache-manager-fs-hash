@@ -48,6 +48,7 @@ DiskStore.prototype.set = function (key, val, options, cb) {
     var ttl = (options.ttl >= 0) ? options.ttl : that.options.ttl;
 
     var filename = that._getFilePathFromKey(key);
+    var lockFilename = filename + '.lock';
 
     var data = {
         expireTime: Date.now() + ttl * 1000,
@@ -75,15 +76,15 @@ DiskStore.prototype.set = function (key, val, options, cb) {
 
     var dataString = JSON.stringify(data, bufferReplacer);
 
-    lockFile.lock(filename + '.lock', this.options.lockFile, function (err) {
+    lockFile.lock(lockFilename, clone(that.options.lockFile), function (err) {
         if (err) {
-            lockFile.unlock(filename + '.lock');
+            lockFile.unlock(lockFilename);
             if (cb) process.nextTick(cb.bind(null, err));
             return;
         }
         that._saveExternalBuffers(key, externalBuffers, function () {
             fs.writeFile(filename, dataString, 'utf8', function (err) {
-                lockFile.unlock(filename + '.lock');
+                lockFile.unlock(lockFilename);
                 if (cb) process.nextTick(cb.bind(null, err));
                 return;
             });
@@ -106,17 +107,18 @@ DiskStore.prototype.get = function (key, options, cb) {
     key = key.toString();
 
     var filename = that._getFilePathFromKey(key);
+    var lockFilename = filename + '.lock';
 
-    lockFile.lock(filename + '.lock', this.options.lockFile, function (err) {
+    lockFile.lock(lockFilename, clone(that.options.lockFile), function (err) {
         if (err) {
-            lockFile.unlock(filename + '.lock');
+            lockFile.unlock(lockFilename);
             if (cb) process.nextTick(cb.bind(null, err));
             return;
         }
         fs.readFile(filename, 'utf8', function (err, dataString) {
             if (err) {
                 //return a miss
-                lockFile.unlock(filename + '.lock');
+                lockFile.unlock(lockFilename);
                 if (cb) process.nextTick(cb.bind(null, null));
                 return;
             }
@@ -159,7 +161,7 @@ DiskStore.prototype.get = function (key, options, cb) {
 
 
             function externalBuffersReadDone(err) {
-                lockFile.unlock(filename + '.lock');
+                lockFile.unlock(lockFilename);
                 if (err) {
                     if (cb) process.nextTick(cb.bind(null, err));
                     return;
@@ -198,16 +200,17 @@ DiskStore.prototype.del = function (key, options, cb) {
 
 
     var filename = that._getFilePathFromKey(key);
+    var lockFilename = filename + '.lock';
 
-    lockFile.lock(filename + '.lock', this.options.lockFile, function (err) {
+    lockFile.lock(lockFilename, clone(that.options.lockFile), function (err) {
         if (err) {
-            lockFile.unlock(filename + '.lock');
+            lockFile.unlock(lockFilename);
             if (cb) process.nextTick(cb.bind(null, err));
             return;
         }
         fs.unlink(filename, function (err) {
             if (err) {
-                lockFile.unlock(filename + '.lock');
+                lockFile.unlock(lockFilename);
                 if (cb) process.nextTick(cb.bind(null, err));
                 return;
             }
@@ -220,7 +223,7 @@ DiskStore.prototype.del = function (key, options, cb) {
         fs.unlink(filename, function (err) {
             if (err) {
                 //we delete all ExternalBuffers in sequence. when there are no more files and try to delete a file that does not exiist we are done
-                lockFile.unlock(filename + '.lock');
+                lockFile.unlock(lockFilename);
                 if (cb) process.nextTick(cb.bind(null, null));
                 return;
             }
@@ -318,6 +321,10 @@ function bufferOfSize(size) {
     } else {
         return new Buffer(size);
     }
+}
+
+function clone(object) {
+    return JSON.parse(JSON.stringify(object));
 }
 
 
