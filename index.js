@@ -168,12 +168,12 @@ DiskStore.prototype.get = function (key, options, cb) {
                 }
                 if (data.expireTime <= Date.now()) {
                     that.del(key); //delete expired cache, return miss
-                    if (cb) process.nextTick(cb.bind(null, null, null));
+                    if (cb) process.nextTick(cb.bind(null, null));
                     return;
                 }
                 if (data.key !== key) {
                     //hash collision, return miss
-                    if (cb) process.nextTick(cb.bind(null, null, null));
+                    if (cb) process.nextTick(cb.bind(null, null));
                     return;
                 }
                 if (cb) process.nextTick(cb.bind(null, null, data.val));
