@@ -74,19 +74,25 @@ DiskStore.prototype.set = function (key, val, options, cb) {
         }
     }
 
-    var dataString = JSON.stringify(data, bufferReplacer);
+    try {
+        var dataString = JSON.stringify(data, bufferReplacer);
+    } catch (err) {
+        return that._returnError(cb, err);
+    }
 
     lockFile.lock(lockFilename, clone(that.options.lockFile), function (err) {
         if (err) {
             lockFile.unlock(lockFilename);
-            if (cb) process.nextTick(cb.bind(null, err));
-            return;
+            return that._returnError(cb, err);
         }
         that._saveExternalBuffers(key, externalBuffers, function () {
             fs.writeFile(filename, dataString, 'utf8', function (err) {
                 lockFile.unlock(lockFilename);
-                if (cb) process.nextTick(cb.bind(null, err));
-                return;
+                if (err) {
+                    return that._returnError(cb, err);
+                } else {
+                    return that._returnSuccess(cb);
+                }
             });
         });
     });
@@ -112,15 +118,12 @@ DiskStore.prototype.get = function (key, options, cb) {
     lockFile.lock(lockFilename, clone(that.options.lockFile), function (err) {
         if (err) {
             lockFile.unlock(lockFilename);
-            if (cb) process.nextTick(cb.bind(null, err));
-            return;
+            return that._returnError(cb, err);
         }
         fs.readFile(filename, 'utf8', function (err, dataString) {
             if (err) {
-                //return a miss
                 lockFile.unlock(lockFilename);
-                if (cb) process.nextTick(cb.bind(null, null));
-                return;
+                return that._returnMiss(cb);
             }
             function bufferReceiver(k, value) {
                 if (value && value.type === 'Buffer' && value.data) {
@@ -154,7 +157,12 @@ DiskStore.prototype.get = function (key, options, cb) {
                 }
             }
             var streamsTodoCounter = 0;
-            var data = JSON.parse(dataString, bufferReceiver);
+            try {
+                var data = JSON.parse(dataString, bufferReceiver);
+            } catch (err) {
+                return that._returnError(cb, err);
+            }
+
             if (streamsTodoCounter === 0) {
                 externalBuffersReadDone(null);
             }
@@ -163,21 +171,19 @@ DiskStore.prototype.get = function (key, options, cb) {
             function externalBuffersReadDone(err) {
                 lockFile.unlock(lockFilename);
                 if (err) {
-                    if (cb) process.nextTick(cb.bind(null, err));
-                    return;
+                    //buffer read error
+                    return that._returnError(cb, err);
                 }
                 if (data.expireTime <= Date.now()) {
-                    that.del(key); //delete expired cache, return miss
-                    if (cb) process.nextTick(cb.bind(null, null));
-                    return;
+                    //cache expired
+                    that.del(key);
+                    return that._returnMiss(cb);
                 }
                 if (data.key !== key) {
-                    //hash collision, return miss
-                    if (cb) process.nextTick(cb.bind(null, null));
-                    return;
+                    //hash collision
+                    return that._returnMiss(cb);
                 }
-                if (cb) process.nextTick(cb.bind(null, null, data.val));
-                return;
+                return that._returnValue(cb, data.val);
             }
         });
     });
@@ -205,14 +211,12 @@ DiskStore.prototype.del = function (key, options, cb) {
     lockFile.lock(lockFilename, clone(that.options.lockFile), function (err) {
         if (err) {
             lockFile.unlock(lockFilename);
-            if (cb) process.nextTick(cb.bind(null, err));
-            return;
+            return that._returnError(cb, err);
         }
         fs.unlink(filename, function (err) {
             if (err) {
                 lockFile.unlock(lockFilename);
-                if (cb) process.nextTick(cb.bind(null, err));
-                return;
+                return that._returnError(cb, err);
             }
             deleteNextBinary(key, 0);
         });
@@ -224,8 +228,7 @@ DiskStore.prototype.del = function (key, options, cb) {
             if (err) {
                 //we delete all ExternalBuffers in sequence. when there are no more files and try to delete a file that does not exiist we are done
                 lockFile.unlock(lockFilename);
-                if (cb) process.nextTick(cb.bind(null, null));
-                return;
+                return that._returnSuccess(cb);
             }
             deleteNextBinary(key, i + 1);
         });
@@ -240,11 +243,14 @@ DiskStore.prototype.reset = function (cb) {
     var that = this;
     fs.readdir(that.options.path, function (err, files) {
         if (err) {
-            if (cb) process.nextTick(cb.bind(null, err));
-            return;
+            return that._returnError(cb, err);
         }
-        that._deleteFilesInCacheDir(files, cb);
-
+        that._deleteFilesInCacheDir(files, function (err) {
+            if (err) {
+                return that._returnError(cb, err);
+            }
+            return that._returnSuccess(cb);
+        });
     });
 };
 
@@ -253,47 +259,40 @@ DiskStore.prototype.reset = function (cb) {
 
 
 
-
-
-
-
-DiskStore.prototype._saveExternalBuffers = function (key, externalBuffers, cb, counter) {
+DiskStore.prototype._saveExternalBuffers = function (key, externalBuffers, callback, counter) {
     var that = this;
     counter = counter || 0;
     var externalBuffer = externalBuffers.shift();
     if (!externalBuffer) {
-        if (cb) process.nextTick(cb.bind(null, null));
-        return;
+        return callback(null);
     }
     var filename = that._getFilePathFromKey(key, '-' + counter + '.bin');
     fs.writeFile(filename, externalBuffer, function (err) {
         if (err) {
-            if (cb) process.nextTick(cb.bind(null, err));
-            return;
+            return callback(err);
         }
-        that._saveExternalBuffers(key, externalBuffers, cb, counter + 1);
+        that._saveExternalBuffers(key, externalBuffers, callback, counter + 1);
 
     });
 
 };
 
-DiskStore.prototype._deleteFilesInCacheDir = function (files, cb) {
+DiskStore.prototype._deleteFilesInCacheDir = function (files, callback) {
     var that = this;
     var file = files.shift();
     if (!file) {
-        if (cb) process.nextTick(cb.bind(null, null));
-        return;
+        return callback(null);
     }
     //check if the filename starts with a prefix, we don't want to delete all files if we share the cache folder with others
     if (file.match(/^diskstore-.*\.(bin|json)$/)) {
         fs.unlink(path.join(that.options.path, file), function (err) {
-            if (err && cb) {
-                cb = cb.bind(null, null);
+            if (err) {
+                callback = callback.bind(null, err);
             }
-            that._deleteFilesInCacheDir(files, cb);
+            that._deleteFilesInCacheDir(files, callback);
         });
     } else {
-        that._deleteFilesInCacheDir(files, cb);
+        that._deleteFilesInCacheDir(files, callback);
     }
 
 };
@@ -304,6 +303,24 @@ DiskStore.prototype._getFilePathFromKey = function (key, suffix) {
         this.options.path,
         'diskstore-' + crypto.createHash('md5').update(key).digest('hex') + suffix
     );
+};
+
+DiskStore.prototype._return = function (cb, err, value) {
+    if (cb) {
+        process.nextTick(cb.bind(null, err, value));
+    }
+};
+DiskStore.prototype._returnMiss = function (cb) {
+    return this._return(cb, null);
+};
+DiskStore.prototype._returnSuccess = function (cb) {
+    return this._return(cb, null);
+};
+DiskStore.prototype._returnError = function (cb, err) {
+    return this._return(cb, err);
+};
+DiskStore.prototype._returnValue = function (cb, value) {
+    return this._return(cb, null, value);
 };
 
 
