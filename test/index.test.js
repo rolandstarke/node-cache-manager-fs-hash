@@ -10,7 +10,7 @@ describe('DiskStore', function () {
     var cache;
     // remove test directory before each test
     beforeEach(function (done) {
-        removeDir(cacheDirectory, function(err){
+        removeDir(cacheDirectory, function (err) {
             cache = store.create({ path: cacheDirectory });
             done(err);
         });
@@ -77,8 +77,26 @@ describe('DiskStore', function () {
 
     describe('set() and get()', function () {
 
-        it('should load the same value that was saved', function (done) {
-            var originalValue = { int: 5, bool: true, float: 0.1, buffer: Buffer.from('Hello World!'), string: '#äö=)@€²(/&%$§"', largeBuffer: Buffer.alloc(100000) };
+        it('should load the same value that was saved (simple object)', function (done) {
+            var originalValue = { int: 5, bool: true, float: 0.1, string: '#äö=)@€²(/&%$§"'};
+            cache.set('key', originalValue, function (err) {
+                assert.equal(null, err);
+                cache.get('key', function (err, loadedValue) {
+                    assert.equal(null, err);
+                    assert.deepEqual(originalValue, loadedValue);
+                    done();
+                });
+            });
+        });
+
+        it('should load the same value that was saved (large buffers)', function (done) {
+            this.timeout(1000);
+            this.slow(500); // writing 30 MB and reading 30 MB on a 200/200 SSD sould take about 300ms
+            var originalValue = {
+                smallbuffer: Buffer.from('Hello World!'),
+                largeBuffer: Buffer.alloc(1000 * 1000 * 20 /* 20MB */, 5),
+                largeBuffer2: Buffer.alloc(1000 * 1000 * 10 /* 10MB */, 100)
+            };
             cache.set('key', originalValue, function (err) {
                 assert.equal(null, err);
                 cache.get('key', function (err, loadedValue) {
