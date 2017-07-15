@@ -26,7 +26,11 @@ function DiskStore(options) {
         fs.mkdirSync(this.options.path);
     }
 
-    this.name = 'diskstore';
+    //current size on disk. this value will be loaded async
+    //the size may not be correct as values can already change while the initial size is calculated
+    //@todo use this value, care about forket mode
+    this.size = 0;
+    this._loadInitialSize();
 
 }
 
@@ -85,14 +89,17 @@ DiskStore.prototype.set = function (key, val, options, cb) {
             lockFile.unlock(lockFilename);
             return that._returnError(cb, err);
         }
-        that._saveExternalBuffers(key, externalBuffers, function () {
+        that._saveExternalBuffers(key, externalBuffers, function (err) {
+            if (err) {
+                lockFile.unlock(lockFilename);
+                return that._returnError(cb, err);
+            }
             fs.writeFile(filename, dataString, 'utf8', function (err) {
                 lockFile.unlock(lockFilename);
                 if (err) {
                     return that._returnError(cb, err);
-                } else {
-                    return that._returnSuccess(cb);
                 }
+                return that._returnSuccess(cb);
             });
         });
     });
@@ -132,25 +139,29 @@ DiskStore.prototype.get = function (key, options, cb) {
                     //JSON.parse is sync so we need to return a buffer sync, we will fill the buffer later
                     var buffer = bufferOfSize(value.size);
                     var filename = that._getFilePathFromKey(key, '-' + value.index + '.bin');
-                    var readStream = fs.createReadStream(filename);
                     streamsTodoCounter++;
-
-                    var writePos = 0;
-                    readStream.on('data', function (chunk) {
-                        buffer.fill(chunk, writePos);
-                        writePos += chunk.length;
-                    });
-                    readStream.on('error', function (err) {
-                        streamsTodoCounter = -1;
-                        externalBuffersReadDone(err);
-                    });
-                    readStream.on('close', function () {
-                        streamsTodoCounter--;
-                        if (streamsTodoCounter === 0) {
-                            externalBuffersReadDone(null);
+                    fs.open(filename, 'r', function (err, fd) {
+                        if (err) {
+                            streamsTodoCounter = -1;
+                            return externalBuffersReadDone(err);
                         }
+                        fs.read(fd, buffer, 0, value.size, 0, function (err) {
+                            if (err) {
+                                streamsTodoCounter = -1;
+                                return externalBuffersReadDone(err);
+                            }
+                            fs.close(fd, function (err) {
+                                if (err) {
+                                    streamsTodoCounter = -1;
+                                    return externalBuffersReadDone(err);
+                                }
+                                streamsTodoCounter--;
+                                if (streamsTodoCounter === 0) {
+                                    return externalBuffersReadDone(null);
+                                }
+                            });
+                        });
                     });
-
                     return buffer;
                 } else {
                     return value;
@@ -259,6 +270,26 @@ DiskStore.prototype.reset = function (cb) {
 
 
 
+
+DiskStore.prototype._loadInitialSize = function () {
+    var that = this;
+    fs.readdir(that.options.path, function (err, files) {
+        if (err) {
+            return; //ignore error
+        }
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].match(/^diskstore-.*\.(bin|json)$/)) {
+                fs.stat(path.join(that.options.path, files[i]), function (err, stat) {
+                    if (err) {
+                        return; //ignore error
+                    }
+                    that.size += stat.size;
+                });
+            }
+        }
+    });
+};
+
 DiskStore.prototype._saveExternalBuffers = function (key, externalBuffers, callback, counter) {
     var that = this;
     counter = counter || 0;
@@ -272,9 +303,7 @@ DiskStore.prototype._saveExternalBuffers = function (key, externalBuffers, callb
             return callback(err);
         }
         that._saveExternalBuffers(key, externalBuffers, callback, counter + 1);
-
     });
-
 };
 
 DiskStore.prototype._deleteFilesInCacheDir = function (files, callback) {
@@ -294,7 +323,6 @@ DiskStore.prototype._deleteFilesInCacheDir = function (files, callback) {
     } else {
         that._deleteFilesInCacheDir(files, callback);
     }
-
 };
 
 DiskStore.prototype._getFilePathFromKey = function (key, suffix) {
