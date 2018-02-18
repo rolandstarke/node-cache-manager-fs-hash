@@ -1,7 +1,9 @@
 {
   "name": "cache-manager-fs-hash",
-  "version": "0.0.2",
-  "node": ">=8.0.0",
+  "version": "0.0.3",
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "description": "file system store for node cache manager",
   "keywords": [
     "cache-manager",

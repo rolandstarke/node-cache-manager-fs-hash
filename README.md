@@ -2,8 +2,8 @@
 
 [![Build Status](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash.svg?branch=master)](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash)
 [![dependencies Status](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash/status.svg)](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash)
-[![npm package](https://img.shields.io/npm/v/node-cache-manager-fs-hash.svg)](https://www.npmjs.com/package/node-cache-manager-fs-hash)
-[![node](https://img.shields.io/node/v/node-cache-manager-fs-hash.svg)]()
+[![npm package](https://img.shields.io/npm/v/cache-manager-fs-hash.svg)](https://www.npmjs.com/package/cache-manager-fs-hash)
+[![node](https://img.shields.io/node/v/cache-manager-fs-hash.svg)]()
 
 A Filesystem store for the [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager) module
 
@@ -34,7 +34,8 @@ const diskCache = cacheManager.caching({
     store: fsStore,
     path: 'diskcache', /* path for cached files */
     ttl: 60 * 60, /* time to life in seconds */
-    ignoreCacheErrors: true, /* ignore if JSON is invalid etc. just return a cache miss in this case*/
+    ignoreCacheErrors: true, /* ignore if JSON is invalid etc.
+                            return a cache miss in this case*/
 });
 
 //slow function that should be cached
@@ -55,7 +56,8 @@ function cachedSlowMultiplyBy2(factor) {
     });
 }
 
-//call the cached version each 500ms. the heavy work is only done once
+//call the cached version each 500ms.
+//the heavy work is only done once.
 setInterval(function () {
     cachedSlowMultiplyBy2(21)
         .then(console.log, console.error);
