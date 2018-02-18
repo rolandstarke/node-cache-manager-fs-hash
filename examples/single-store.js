@@ -12,7 +12,7 @@ const diskCache = cacheManager.caching({
 });
 
 //slow function that should be cached
-function slowMultiplyBy2(factor, callback) {
+function slowMultiplyBy2(factor) {
     console.log('doing heavy work...');
     return new Promise(function (resolve, reject) {
         setTimeout(function () {

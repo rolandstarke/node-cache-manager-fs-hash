@@ -33,7 +33,7 @@ const diskCache = cacheManager.caching({
 });
 
 //slow function that should be cached
-function slowMultiplyBy2(factor, callback) {
+function slowMultiplyBy2(factor) {
     console.log('doing heavy work...');
     return new Promise(function (resolve, reject) {
         setTimeout(function () {
@@ -44,7 +44,7 @@ function slowMultiplyBy2(factor, callback) {
 }
 
 //create a cached version of the slow function
-function slowMultiplyBy2Cached(factor) {
+function cachedSlowMultiplyBy2(factor) {
     return diskCache.wrap(factor /* cache key */, function () {
         return slowMultiplyBy2(factor);
     });
@@ -52,7 +52,7 @@ function slowMultiplyBy2Cached(factor) {
 
 //call the cached version each 500ms. the heavy work is only done once
 setInterval(function () {
-    slowMultiplyBy2Cached(21)
+    cachedSlowMultiplyBy2(21)
         .then(console.log, console.error);
 }, 500);
 
