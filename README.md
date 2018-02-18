@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash.svg?branch=master)](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash)
 [![dependencies Status](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash/status.svg)](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash)
+[![npm package](https://img.shields.io/npm/v/node-cache-manager-fs-hash.svg)](https://www.npmjs.com/package/node-cache-manager-fs-hash)
+[![node](https://img.shields.io/node/v/node-cache-manager-fs-hash.svg)]()
 
 A Filesystem store for the [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager) module
 
