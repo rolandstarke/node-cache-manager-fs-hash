@@ -1,5 +1,8 @@
 # Node Cache Manager store for Filesystem
 
+[![Build Status](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash.svg?branch=master)](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash)
+[![dependencies Status](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash/status.svg)](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash)
+
 A Filesystem store for the [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager) module
 
 ## Installation
