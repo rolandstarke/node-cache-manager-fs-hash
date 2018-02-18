@@ -1,7 +1,11 @@
 {
     "env": {
         "node": true,
-        "mocha": true
+        "mocha": true,
+        "es6": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 2017
     },
     "extends": "eslint:recommended",
     "rules": {
@@ -22,6 +26,12 @@
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "prefer-const": "error",
+        "no-var":"error"
     }
 }
