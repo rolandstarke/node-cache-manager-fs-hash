@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash.svg?branch=master)](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash)
 [![dependencies Status](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash/status.svg)](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash)
 [![npm package](https://img.shields.io/npm/v/cache-manager-fs-hash.svg)](https://www.npmjs.com/package/cache-manager-fs-hash)
-[![node](https://img.shields.io/node/v/cache-manager-fs-hash.svg)]()
+[![node](https://img.shields.io/node/v/cache-manager-fs-hash.svg)](https://nodejs.org)
 
 A Filesystem store for the [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager) module
 
@@ -16,7 +16,7 @@ npm install cache-manager-fs-hash --save
 ## Features
 
 * Saves anything that is `JSON.stringify`-able to disk
-* Buffers are saved as well (if they reach a certain size they will be stored to seperate files)
+* Buffers are saved as well (if they reach a certain size they will be stored to separate files)
 * Works well with the cluster module
 
 ## Usage example
