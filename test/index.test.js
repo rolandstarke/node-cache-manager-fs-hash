@@ -32,12 +32,17 @@ describe('DiskStore', function () {
 
     describe('get()', function () {
 
-        it('should retun undefined on non existing key', function (done) {
+        it('should retun undefined on non existing key callback', function (done) {
             cache.get('not existing key', function (err, data) {
                 assert.equal(null, err);
                 assert.equal(undefined, data);
                 done();
             });
+        });
+
+        it('should retun undefined on non existing key promise', async function () {
+            const data = await cache.get('not existing key');
+            assert.equal(undefined, data);
         });
 
     });
@@ -56,12 +61,17 @@ describe('DiskStore', function () {
             });
         });
 
-        it('should save buffers in seperate files', function (done) {
+        it('should save buffers in seperate files callback', function (done) {
             cache.set('key', Buffer.alloc(100000), function (err) {
                 assert.equal(null, err);
                 assert.equal(2, countFilesInCacheDirWithoutLockFiles());
                 done();
             });
+        });
+
+        it('should save buffers in seperate files promise', async function () {
+            await cache.set('key', Buffer.alloc(100000));
+            assert.equal(2, countFilesInCacheDirWithoutLockFiles());
         });
 
         it('should not modify the value while saving', function (done) {
