@@ -45,6 +45,32 @@ describe('DiskStore', function () {
             assert.equal(undefined, data);
         });
 
+        it('should not be that slow reading the same non existing cache key sequentially', async function () {
+            this.slow(100);
+            for (let i = 0; i < 30; i++) {
+                const data = await cache.get('not existing key');
+                assert.equal(undefined, data);
+            }
+        });
+
+        it('should not be that slow reading the same non existing cache key parallel', async function () {
+            this.slow(300);
+
+            await Promise.all(Array.apply(null, Array(5)).map(async function () {
+                const data = await cache.get('not existing key');
+                assert.equal(undefined, data);
+            }));
+        });
+
+        it('should not be that slow reading different non existing cache keys parallel', async function () {
+            this.slow(100);
+
+            await Promise.all(Array.apply(null, Array(30)).map(async function (v, i) {
+                const data = await cache.get('not existing key' + i);
+                assert.equal(undefined, data);
+            }));
+        });
+
     });
 
     describe('set()', function () {
@@ -102,8 +128,8 @@ describe('DiskStore', function () {
 
 
         it('should load the same value that was saved (large buffers)', function (done) {
-            this.timeout(1000);
             this.slow(500); // writing 30 MB and reading 30 MB on a 200/200 SSD sould take about 300ms
+            this.timeout(2000);
             const originalValue = {
                 smallbuffer: Buffer.from('Hello World!'),
                 largeBuffer: Buffer.alloc(1000 * 1000 * 20 /* 20MB */, 5),
@@ -154,6 +180,48 @@ describe('DiskStore', function () {
                     });
                 });
             });
+        });
+
+        it('should be able to get a value written by an other cache instance using the same directory', async function () {
+            const originalValue = 'value';
+            const cache1 = store.create({ path: cacheDirectory });
+            const cache2 = store.create({ path: cacheDirectory });
+
+            await cache1.set('key', originalValue);
+            assert.equal(await cache2.get('key'), originalValue);
+        });
+
+        it('should be able to set & get a value on different instances simultaneously', async function () {
+            this.slow(600);
+            this.timeout(2000);
+
+            const cache1 = store.create({ path: cacheDirectory });
+            const cache2 = store.create({ path: cacheDirectory });
+            const cache3 = store.create({ path: cacheDirectory });
+            const iterations = 2;  // run the test twice, just to be sure
+
+            for (let i = 0; i < iterations; i++) {
+                const value1 = { int: 5, bool: true, float: Math.random(), buffer: Buffer.from('Hello World1!'), string: '#äö=)@€²(/&%$§"1', largeBuffer: Buffer.alloc(1) };
+                const value2 = { int: 6, bool: true, float: Math.random(), buffer: Buffer.from('Hello World2!'), string: '#äö=)@€²(/&%$§"2', largeBuffer: Buffer.alloc(2) };
+                const value3 = { int: 7, bool: true, float: Math.random(), buffer: Buffer.from('Hello World3!'), string: '#äö=)@€²(/&%$§"3', largeBuffer: Buffer.alloc(3) };
+
+                await Promise.all([cache1.set('key', value1), cache2.set('key', value2), cache3.set('key', value3)]);
+                const values = await Promise.all([cache1.get('key'), cache2.get('key'), cache3.get('key')]);
+                //all caches should be the same
+                assert.deepEqual(values[0], values[1]);
+                assert.deepEqual(values[0], values[2]);
+
+                //the cache should be one of the values that was stored to it
+                try {
+                    assert.deepEqual(value1, values[0]);
+                } catch (e) {
+                    try {
+                        assert.deepEqual(value2, values[0]);
+                    } catch (e) {
+                        assert.deepEqual(value3, values[0]);
+                    }
+                }
+            }
         });
 
     });
