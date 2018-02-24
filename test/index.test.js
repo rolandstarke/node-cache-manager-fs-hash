@@ -55,6 +55,7 @@ describe('DiskStore', function () {
 
         it('should not be that slow reading the same non existing cache key parallel', async function () {
             this.slow(300);
+            this.timeout(5000);
 
             await Promise.all(Array.apply(null, Array(5)).map(async function () {
                 const data = await cache.get('not existing key');
@@ -193,7 +194,7 @@ describe('DiskStore', function () {
 
         it('should be able to set & get a value on different instances simultaneously', async function () {
             this.slow(600);
-            this.timeout(2000);
+            this.timeout(5000);
 
             const cache1 = store.create({ path: cacheDirectory });
             const cache2 = store.create({ path: cacheDirectory });
