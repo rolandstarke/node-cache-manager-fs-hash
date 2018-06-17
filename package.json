@@ -24,11 +24,11 @@
   "author": "Roland Starke",
   "license": "MIT",
   "devDependencies": {
-    "cache-manager": "^2.4.0",
-    "mocha": "^3.4.2",
-    "rimraf": "^2.6.1"
+    "cache-manager": "^2.9.0",
+    "mocha": "^5.2.0",
+    "rimraf": "^2.6.2"
   },
   "dependencies": {
-    "lockfile": "^1.0.3"
+    "lockfile": "^1.0.4"
   }
 }
