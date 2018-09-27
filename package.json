@@ -3,7 +3,7 @@
   "version": "0.0.5",
   "main": "index.js",
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=6.0.0"
   },
   "description": "file system store for node cache manager",
   "author": "Roland Starke",
