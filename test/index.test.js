@@ -126,7 +126,7 @@ describe('DiskStore', function () {
 
         it('should load the same value that was saved (large buffers)', async function () {
             this.slow(500); // writing 30 MB and reading 30 MB on a 200/200 SSD sould take about 300ms
-            this.timeout(3000);
+            this.timeout(10000);
 
             const originalValue = {
                 smallbuffer: Buffer.from('Hello World!'),
