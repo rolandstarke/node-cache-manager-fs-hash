@@ -135,7 +135,9 @@ describe('DiskStore', function () {
             };
             await cache.set('(large buffers)', originalValue);
             const loadedValue = await cache.get('(large buffers)');
-            assert.deepEqual(originalValue, loadedValue);
+            assert.deepEqual(originalValue.smallbuffer, loadedValue.smallbuffer);
+            assert.strictEqual(originalValue.largeBuffer.length, loadedValue.largeBuffer.length);
+            assert.strictEqual(originalValue.largeBuffer2.length, loadedValue.largeBuffer2.length);
         });
 
         it('should not load expired data (global options)', async function () {
