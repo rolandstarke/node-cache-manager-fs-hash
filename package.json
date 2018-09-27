@@ -28,12 +28,13 @@
     "build": "babel src --out-dir lib",
     "prepare": "npm run build",
     "pretest": "npm run build",
-    "test": "mocha"
+    "test": "mocha --require @babel/register ./test/**/*.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.1.0",
     "@babel/core": "^7.1.0",
     "@babel/preset-env": "^7.1.0",
+    "@babel/register": "^7.0.0",
     "cache-manager": "^2.9.0",
     "mocha": "^5.2.0",
     "rimraf": "^2.6.2"
