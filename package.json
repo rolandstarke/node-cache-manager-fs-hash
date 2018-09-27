@@ -5,6 +5,10 @@
     "node": ">=8.0.0"
   },
   "description": "file system store for node cache manager",
+  "files": [
+    "index.js",
+    "lib/*"
+  ],
   "keywords": [
     "cache-manager",
     "storage",
@@ -19,11 +23,17 @@
   },
   "main": "index.js",
   "scripts": {
+    "build": "babel src --out-dir lib",
+    "prepare": "npm run build",
+    "pretest": "npm run build",
     "test": "mocha"
   },
   "author": "Roland Starke",
   "license": "MIT",
   "devDependencies": {
+    "@babel/cli": "^7.1.0",
+    "@babel/core": "^7.1.0",
+    "@babel/preset-env": "^7.1.0",
     "cache-manager": "^2.9.0",
     "mocha": "^5.2.0",
     "rimraf": "^2.6.2"
