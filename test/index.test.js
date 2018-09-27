@@ -125,19 +125,17 @@ describe('DiskStore', function () {
         });
 
         it('should load the same value that was saved (large buffers)', async function () {
-            this.slow(500); // writing 30 MB and reading 30 MB on a 200/200 SSD sould take about 300ms
-            this.timeout(10000);
+            this.slow(500);
+            this.timeout(30000);
 
             const originalValue = {
                 smallbuffer: Buffer.from('Hello World!'),
-                largeBuffer: Buffer.alloc(1000 * 1000 * 20 /* 20MB */, 5),
-                largeBuffer2: Buffer.alloc(1000 * 1000 * 10 /* 10MB */, 100)
+                largeBuffer: Buffer.alloc(1000 * 1000 * 10 /* 10MB */, 5),
+                largeBuffer2: Buffer.alloc(1000 * 1000 * 5 /* 5MB */, 100)
             };
             await cache.set('(large buffers)', originalValue);
             const loadedValue = await cache.get('(large buffers)');
-            assert.deepEqual(originalValue.smallbuffer, loadedValue.smallbuffer);
-            assert.strictEqual(originalValue.largeBuffer.length, loadedValue.largeBuffer.length);
-            assert.strictEqual(originalValue.largeBuffer2.length, loadedValue.largeBuffer2.length);
+            assert.deepEqual(originalValue, loadedValue);
         });
 
         it('should not load expired data (global options)', async function () {
