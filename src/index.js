@@ -1,7 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
-const util = require('util');
+const {promisify} = require('es6-promisify');
 const lockFile = require('lockfile');
 const jsonFileStore = require('./json-file-store');
 const wrapCallback = require('./wrap-callback');
@@ -67,8 +67,8 @@ DiskStore.prototype.set = wrapCallback(async function (key, val, options) {
     if (this.options.subdirs) {
         //check if subdir exists or create it
         const dir = path.dirname(filePath);
-        await util.promisify(fs.access)(dir, fs.constants.W_OK).catch(function(){
-            return util.promisify(fs.mkdir)(dir);
+        await promisify(fs.access)(dir, fs.constants.W_OK).catch(function(){
+            return promisify(fs.mkdir)(dir);
         });
     }
 
@@ -153,9 +153,9 @@ DiskStore.prototype.del = wrapCallback(async function (key) {
  * cleanup cache on disk -> delete all files from the cache
  */
 DiskStore.prototype.reset = wrapCallback(async function () {
-    const readdir = util.promisify(fs.readdir);
-    const stat = util.promisify(fs.stat);
-    const unlink = util.promisify(fs.unlink);
+    const readdir = promisify(fs.readdir);
+    const stat = promisify(fs.stat);
+    const unlink = promisify(fs.unlink);
 
     return await deletePath(this.options.path, 2);
 
@@ -184,7 +184,7 @@ DiskStore.prototype.reset = wrapCallback(async function () {
  * @private
  */
 DiskStore.prototype._lock = function (filePath) {
-    return util.promisify(lockFile.lock)(
+    return promisify(lockFile.lock)(
         filePath + '.lock',
         JSON.parse(JSON.stringify(this.options.lockFile)) //the options are modified -> create a copy to prevent that
     );
@@ -198,7 +198,7 @@ DiskStore.prototype._lock = function (filePath) {
  * @private
  */
 DiskStore.prototype._unlock = function (filePath) {
-    return util.promisify(lockFile.unlock)(filePath + '.lock');
+    return promisify(lockFile.unlock)(filePath + '.lock');
 };
 
 /**

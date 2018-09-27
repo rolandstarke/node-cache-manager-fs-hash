@@ -1,4 +1,4 @@
-const util = require('util');
+const {promisify} = require('es6-promisify');
 const fs = require('fs');
 
 exports.write = async function (path, data) {
@@ -23,18 +23,18 @@ exports.write = async function (path, data) {
 
 
     //save main json file
-    await util.promisify(fs.writeFile)(path + '.json', dataString, 'utf8');
+    await promisify(fs.writeFile)(path + '.json', dataString, 'utf8');
 
     //save external buffers
     await Promise.all(externalBuffers.map(async function (externalBuffer) {
-        await util.promisify(fs.writeFile)(path + '-' + externalBuffer.index + '.bin', externalBuffer.buffer, 'utf8');
+        await promisify(fs.writeFile)(path + '-' + externalBuffer.index + '.bin', externalBuffer.buffer, 'utf8');
     }));
 };
 
 
 exports.read = async function (path) {
     //read main json file
-    const dataString = await util.promisify(fs.readFile)(path + '.json', 'utf8');
+    const dataString = await promisify(fs.readFile)(path + '.json', 'utf8');
 
 
     const externalBuffers = [];
@@ -56,20 +56,20 @@ exports.read = async function (path) {
 
     //read external buffers
     await Promise.all(externalBuffers.map(async function (externalBuffer) {
-        const fd = await util.promisify(fs.open)(path + '-' + +externalBuffer.index + '.bin', 'r');
-        await util.promisify(fs.read)(fd, externalBuffer.buffer, 0, externalBuffer.buffer.length, 0);
-        await util.promisify(fs.close)(fd);
+        const fd = await promisify(fs.open)(path + '-' + +externalBuffer.index + '.bin', 'r');
+        await promisify(fs.read)(fd, externalBuffer.buffer, 0, externalBuffer.buffer.length, 0);
+        await promisify(fs.close)(fd);
     }));
     return data;
 };
 
 exports.delete = async function (path) {
-    await util.promisify(fs.unlink)(path + '.json');
+    await promisify(fs.unlink)(path + '.json');
 
     //delete binary files
     try {
         for (let i = 0; i < Infinity; i++) {
-            await util.promisify(fs.unlink)(path + '-' + i + '.bin');
+            await promisify(fs.unlink)(path + '-' + i + '.bin');
         }
     } catch (err) {
         if (err.code === 'ENOENT') {
