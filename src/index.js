@@ -1,7 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
-const {promisify} = require('es6-promisify');
+const { promisify } = require('es6-promisify');
 const lockFile = require('lockfile');
 const jsonFileStore = require('./json-file-store');
 const wrapCallback = require('./wrap-callback');
@@ -67,7 +67,7 @@ DiskStore.prototype.set = wrapCallback(async function (key, val, options) {
     if (this.options.subdirs) {
         //check if subdir exists or create it
         const dir = path.dirname(filePath);
-        await promisify(fs.access)(dir, fs.constants.W_OK).catch(function(){
+        await promisify(fs.access)(dir, fs.constants.W_OK).catch(function () {
             return promisify(fs.mkdir)(dir);
         });
     }
@@ -136,6 +136,12 @@ DiskStore.prototype.get = wrapCallback(async function (key) {
 DiskStore.prototype.del = wrapCallback(async function (key) {
     const filePath = this._getFilePathByKey(key);
     try {
+        if (this.options.subdirs) {
+            //check if the folder exists to fail faster
+            const dir = path.dirname(filePath);
+            await promisify(fs.access)(dir, fs.constants.W_OK);
+        }
+
         await this._lock(filePath);
         await jsonFileStore.delete(filePath);
     } catch (err) {

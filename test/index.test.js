@@ -114,6 +114,22 @@ describe('DiskStore', function () {
 
     });
 
+    describe('del()', function () {
+
+        it('should not do anything deleting nonexisting key', async function () {
+            this.slow(20);
+            const cache = store.create({path: cacheDirectory});
+            await cache.del('nonexisting key');
+        });
+
+        it('should not do anything deleting nonexisting key (subdirs)', async function () {
+            this.slow(20);
+            const cache = store.create({path: cacheDirectory, subdirs: true});
+            await cache.del('nonexisting key');
+        });
+
+    });
+
 
     describe('set() and get()', function () {
 
