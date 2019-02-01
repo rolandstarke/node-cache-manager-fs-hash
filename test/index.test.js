@@ -192,7 +192,7 @@ describe('DiskStore', function () {
         });
 
         it('should work with subdirs', async function () {
-            const cache = store.create({path: cacheDirectory, dirs: true});
+            const cache = store.create({path: cacheDirectory, subdirs: true});
             const originalValue = {int: 8, bool: true, float: 0.9, string: 'dsfsdöv'};
             await cache.set('(simple object)', originalValue);
             const loadedValue = await cache.get('(simple object)');
