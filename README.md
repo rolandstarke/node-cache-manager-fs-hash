@@ -31,7 +31,7 @@ const diskCache = cacheManager.caching({
     store: fsStore,
     options: {
         path: 'diskcache', //path for cached files
-        ttl: 60 * 60,      //time to life in seconds
+        ttl: 60 * 60,      //time to life in seconds (can be Infinity)
         subdirs: true,     //create subdirectories to reduce the 
                            //files in a single dir (default: false)
     }
