@@ -52,7 +52,7 @@ const diskCache = cacheManager.caching({
     await diskCache.reset();
 
     function getUserCached(userId) {
-        return diskCache.wrap(userId, function () {
+        return diskCache.wrap(userId /* cache key */, function () {
             return getUser(userId);
         });
     }
