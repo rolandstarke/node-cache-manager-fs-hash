@@ -251,7 +251,7 @@ describe('DiskStore', function () {
         });
 
         it('should work with zip option', async function () {
-            const cache = store.create({path: cacheDirectory, zip: false});
+            const cache = store.create({path: cacheDirectory, zip: true});
             const originalValue = {
                 int: 5,
                 bool: true,
@@ -264,6 +264,15 @@ describe('DiskStore', function () {
             await cache.set('key', originalValue);
             const loadedValue = await cache.get('key');
             assert.deepStrictEqual(originalValue, loadedValue);
+        });
+
+        it('should be able to store the number Infinity', async function () {
+            const cache = store.create({path: cacheDirectory});
+            const originalValue = Infinity;
+
+            await cache.set('key', originalValue);
+            const loadedValue = await cache.get('key');
+            assert.equal(originalValue, loadedValue);
         });
 
     });

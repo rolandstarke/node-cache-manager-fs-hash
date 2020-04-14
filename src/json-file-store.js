@@ -17,6 +17,8 @@ exports.write = async function (path, data, options) {
                 index: externalBuffers.length - 1,
                 size: buffer.length,
             };
+        } else if (value === Infinity || value === -Infinity) {
+            return { type: 'Infinity', sign: Math.sign(value) };
         } else {
             return value;
         }
@@ -49,7 +51,7 @@ exports.read = async function (path, options) {
     }
 
     //read main json file
-    let dataString; 
+    let dataString;
     if (options.zip) {
         const compressedData = await promisify(fs.readFile)(path + '.json' + zipExtension);
         dataString = (await promisify(zlib.unzip)(compressedData)).toString();
@@ -70,6 +72,8 @@ exports.read = async function (path, options) {
                 buffer: buffer,
             });
             return buffer;
+        } else if (value && value.type === 'Infinity' && typeof value.sign === 'number') {
+            return Infinity * value.sign;
         } else {
             return value;
         }
@@ -77,7 +81,7 @@ exports.read = async function (path, options) {
 
     //read external buffers
     await Promise.all(externalBuffers.map(async function (externalBuffer) {
-        
+
         if (options.zip) {
             const bufferCompressed = await promisify(fs.readFile)(path + '-' + +externalBuffer.index + '.bin' + zipExtension);
             const buffer = await promisify(zlib.unzip)(bufferCompressed);
