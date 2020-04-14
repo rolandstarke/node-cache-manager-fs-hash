@@ -250,6 +250,22 @@ describe('DiskStore', function () {
             }
         });
 
+        it('should work with zip option', async function () {
+            const cache = store.create({path: cacheDirectory, zip: false});
+            const originalValue = {
+                int: 5,
+                bool: true,
+                float: Math.random(),
+                buffer: Buffer.from('Hello World1!'),
+                string: '#äö=)@€²(/&%$§"1',
+                largeBuffer: Buffer.alloc(1)
+            };
+
+            await cache.set('key', originalValue);
+            const loadedValue = await cache.get('key');
+            assert.deepStrictEqual(originalValue, loadedValue);
+        });
+
     });
 
     //todo implement del

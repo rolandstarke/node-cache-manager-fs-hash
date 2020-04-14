@@ -1,9 +1,10 @@
 const promisify = require('util').promisify;
 const fs = require('fs');
+const zlib = require('zlib');
 
-exports.write = async function (path, data) {
+exports.write = async function (path, data, options) {
     const externalBuffers = [];
-    const dataString = JSON.stringify(data, function replacerFunction(k, value) {
+    let dataString = JSON.stringify(data, function replacerFunction(k, value) {
         //Buffers searilize to {data: [...], type: "Buffer"}
         if (value && value.type === 'Buffer' && value.data && value.data.length >= 1024 /* only save bigger Buffers external, small ones can be inlined */) {
             const buffer = Buffer.from(value.data);
@@ -22,19 +23,39 @@ exports.write = async function (path, data) {
     });
 
 
+    let zipExtension = '';
+    if (options.zip) {
+        zipExtension = '.gz';
+        dataString = await promisify(zlib.deflate)(dataString);
+    }
     //save main json file
-    await promisify(fs.writeFile)(path + '.json', dataString, 'utf8');
+    await promisify(fs.writeFile)(path + '.json' + zipExtension, dataString, 'utf8');
 
     //save external buffers
     await Promise.all(externalBuffers.map(async function (externalBuffer) {
-        await promisify(fs.writeFile)(path + '-' + externalBuffer.index + '.bin', externalBuffer.buffer, 'utf8');
+        let buffer = externalBuffer.buffer;
+        if (options.zip) {
+            buffer = await promisify(zlib.deflate)(buffer);
+        }
+        await promisify(fs.writeFile)(path + '-' + externalBuffer.index + '.bin' + zipExtension, buffer, 'utf8');
     }));
 };
 
 
-exports.read = async function (path) {
+exports.read = async function (path, options) {
+    let zipExtension = '';
+    if (options.zip) {
+        zipExtension = '.gz';
+    }
+
     //read main json file
-    const dataString = await promisify(fs.readFile)(path + '.json', 'utf8');
+    let dataString; 
+    if (options.zip) {
+        const compressedData = await promisify(fs.readFile)(path + '.json' + zipExtension);
+        dataString = (await promisify(zlib.unzip)(compressedData)).toString();
+    } else {
+        dataString = await promisify(fs.readFile)(path + '.json' + zipExtension, 'utf8');
+    }
 
 
     const externalBuffers = [];
@@ -56,20 +77,32 @@ exports.read = async function (path) {
 
     //read external buffers
     await Promise.all(externalBuffers.map(async function (externalBuffer) {
-        const fd = await promisify(fs.open)(path + '-' + +externalBuffer.index + '.bin', 'r');
-        await promisify(fs.read)(fd, externalBuffer.buffer, 0, externalBuffer.buffer.length, 0);
-        await promisify(fs.close)(fd);
+        
+        if (options.zip) {
+            const bufferCompressed = await promisify(fs.readFile)(path + '-' + +externalBuffer.index + '.bin' + zipExtension);
+            const buffer = await promisify(zlib.unzip)(bufferCompressed);
+            buffer.copy(externalBuffer.buffer);
+        } else {
+            const fd = await promisify(fs.open)(path + '-' + +externalBuffer.index + '.bin' + zipExtension, 'r');
+            await promisify(fs.read)(fd, externalBuffer.buffer, 0, externalBuffer.buffer.length, 0);
+            await promisify(fs.close)(fd);
+        }
     }));
     return data;
 };
 
-exports.delete = async function (path) {
-    await promisify(fs.unlink)(path + '.json');
+exports.delete = async function (path, options) {
+    let zipExtension = '';
+    if (options.zip) {
+        zipExtension = '.gz';
+    }
+
+    await promisify(fs.unlink)(path + '.json' + zipExtension);
 
     //delete binary files
     try {
         for (let i = 0; i < Infinity; i++) {
-            await promisify(fs.unlink)(path + '-' + i + '.bin');
+            await promisify(fs.unlink)(path + '-' + i + '.bin' + zipExtension);
         }
     } catch (err) {
         if (err.code === 'ENOENT') {

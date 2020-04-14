@@ -32,8 +32,9 @@ const diskCache = cacheManager.caching({
     options: {
         path: 'diskcache', //path for cached files
         ttl: 60 * 60,      //time to life in seconds
-        subdirs: true,     //create subdirectories to reduce the 
+        subdirs: true,     //create subdirectories to reduce the
                            //files in a single dir (default: false)
+        zip: true,         //zip files to save diskspace (default: false)
     }
 });
 

@@ -12,6 +12,7 @@ const wrapCallback = require('./wrap-callback');
  * @param {object} [args] options of disk store
  * @param {string} [args.path] path for cached files
  * @param {number} [args.ttl] time to life in seconds
+ * @param {boolean} [args.zip] zip content to save diskspace
  * @todo {number} [args.maxsize] max size in bytes on disk
  * @param {boolean} [args.subdirs] create subdirectories
  * @returns {DiskStore}
@@ -28,6 +29,7 @@ function DiskStore(options) {
         ttl: options.ttl >= 0 ? +options.ttl : 60 * 60, /* time before expiring in seconds */
         maxsize: options.maxsize || Infinity, /* max size in bytes on disk */
         subdirs: options.subdirs || false,
+        zip: options.zip || false,
         lockFile: { //check lock at 0ms 50ms 100ms ... 400ms 1400ms 1450ms... up to 10 seconds, after that just asume the lock is staled
             wait: 400,
             pollPeriod: 50,
@@ -74,7 +76,7 @@ DiskStore.prototype.set = wrapCallback(async function (key, val, options) {
 
     try {
         await this._lock(filePath);
-        await jsonFileStore.write(filePath, data);
+        await jsonFileStore.write(filePath, data, this.options);
     } catch (err) {
         throw err;
     } finally {
@@ -94,14 +96,14 @@ DiskStore.prototype.get = wrapCallback(async function (key) {
     const filePath = this._getFilePathByKey(key);
 
     try {
-        const data = await jsonFileStore.read(filePath).catch(async (err) => {
+        const data = await jsonFileStore.read(filePath, this.options).catch(async (err) => {
             if (err.code === 'ENOENT') {
                 throw err;
             }
             //maybe the file is currently written to, lets lock it and read again
             try {
                 await this._lock(filePath);
-                return await jsonFileStore.read(filePath);
+                return await jsonFileStore.read(filePath, this.options);
             } catch (err2) {
                 throw err2;
             } finally {
@@ -143,7 +145,7 @@ DiskStore.prototype.del = wrapCallback(async function (key) {
         }
 
         await this._lock(filePath);
-        await jsonFileStore.delete(filePath);
+        await jsonFileStore.delete(filePath, this.options);
     } catch (err) {
         //ignore deleting non existing keys
         if (err.code !== 'ENOENT') {

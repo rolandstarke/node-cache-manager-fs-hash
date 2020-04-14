@@ -1,5 +1,5 @@
 const cacheManager = require('cache-manager');
-const fsStore = require('../lib'); //replace with 'cache-manager-fs-hash' !!
+const fsStore = require('..'); //replace with 'cache-manager-fs-hash' !!
 
 const diskCache = cacheManager.caching({
     store: fsStore,
@@ -7,6 +7,7 @@ const diskCache = cacheManager.caching({
         path: 'diskcache', // path for cached files
         ttl: 60 * 60, // time to life in seconds
         subdirs: true, //create subdirectories to reduce the files in a single dir (default: false)
+        zip: true, //zip files to save diskspace (default: false)
     }
 });
 
@@ -22,7 +23,7 @@ const diskCache = cacheManager.caching({
     console.log(await getUserCached(5)); // {id: 5, name: '...'}
     console.log(await getUserCached(5)); // {id: 5, name: '...'}
 
-    await diskCache.reset();
+    //await diskCache.reset();
 
     function getUserCached(userId) {
         return diskCache.wrap(userId, function () {
