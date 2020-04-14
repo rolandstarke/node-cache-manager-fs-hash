@@ -1,4 +1,4 @@
-const {promisify} = require('es6-promisify');
+const promisify = require('util').promisify;
 const fs = require('fs');
 
 exports.write = async function (path, data) {

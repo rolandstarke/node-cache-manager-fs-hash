@@ -1,7 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
-const { promisify } = require('es6-promisify');
+const promisify = require('util').promisify;
 const lockFile = require('lockfile');
 const jsonFileStore = require('./json-file-store');
 const wrapCallback = require('./wrap-callback');
