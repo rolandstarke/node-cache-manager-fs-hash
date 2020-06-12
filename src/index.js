@@ -70,7 +70,9 @@ DiskStore.prototype.set = wrapCallback(async function (key, val, options) {
         //check if subdir exists or create it
         const dir = path.dirname(filePath);
         await promisify(fs.access)(dir, fs.constants.W_OK).catch(function () {
-            return promisify(fs.mkdir)(dir);
+            return promisify(fs.mkdir)(dir).catch(err => {
+                if (err.code !== 'EEXIST') throw err;
+            });
         });
     }
 
