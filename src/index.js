@@ -87,13 +87,7 @@ DiskStore.prototype.set = wrapCallback(async function (key, val, options) {
 });
 
 
-/**
- * get an entry from store
- * @param {string} key
- * @param {function} [cb]
- * @returns {Promise}
- */
-DiskStore.prototype.get = wrapCallback(async function (key) {
+DiskStore.prototype._readFile = async function (key) {
     key = key + '';
     const filePath = this._getFilePathByKey(key);
 
@@ -121,7 +115,7 @@ DiskStore.prototype.get = wrapCallback(async function (key) {
             //hash collision
             return undefined;
         }
-        return data.val;
+        return data;
 
     } catch (err) {
         //file does not exist lets return a cache miss
@@ -130,6 +124,36 @@ DiskStore.prototype.get = wrapCallback(async function (key) {
         } else {
             throw err;
         }
+    }
+};
+
+/**
+ * get an entry from store
+ * @param {string} key
+ * @param {function} [cb]
+ * @returns {Promise}
+ */
+DiskStore.prototype.get = wrapCallback(async function (key) {
+    const data = await this._readFile(key);
+    if (data) {
+        return data.val;
+    } else {
+        return data;
+    }
+});
+
+/**
+ * get ttl in seconds for key in store
+ * @param {string} key
+ * @param {function} [cb]
+ * @returns {Promise}
+ */
+DiskStore.prototype.ttl = wrapCallback(async function (key) {
+    const data = await this._readFile(key);
+    if (data) {
+        return (data.expireTime - Date.now()) / 1000;
+    } else {
+        return 0;
     }
 });
 

@@ -43,6 +43,7 @@ const diskCache = cacheManager.caching({
 
     await diskCache.set('key', 'value');
     console.log(await diskCache.get('key')); //"value"
+    console.log(await diskCache.ttl('key')); //3600 seconds
     await diskCache.del('key');
     console.log(await diskCache.get('key')); //undefined
 

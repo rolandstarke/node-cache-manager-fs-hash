@@ -288,13 +288,24 @@ describe('DiskStore', function () {
 
     });
 
-    //todo implement reset
     describe('set() and reset()', function () {
 
         it('should delete all files on reset', async function () {
             await cache.set('key', 'value');
             await cache.reset('key');
             assert.strictEqual(0, countFilesInCacheDir());
+        });
+
+    });
+
+    
+    describe('set() and ttl()', function () {
+
+        it('should get the right ttl', async function () {
+            const cache = store.create({path: cacheDirectory, ttl: 10});
+            await cache.set('key', 'value');
+            const ttl = Math.round(await cache.ttl('key'));
+            assert.strictEqual(10, ttl);
         });
 
     });
