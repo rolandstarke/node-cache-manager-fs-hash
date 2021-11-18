@@ -1,7 +1,6 @@
 # Node Cache Manager store for Filesystem
 
-[![Build Status](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash.svg?branch=master)](https://travis-ci.org/rolandstarke/node-cache-manager-fs-hash)
-[![dependencies Status](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash/status.svg)](https://david-dm.org/rolandstarke/node-cache-manager-fs-hash)
+[![Build](https://github.com/rolandstarke/node-cache-manager-fs-hash/actions/workflows/node.js.yml/badge.svg)](https://github.com/rolandstarke/node-cache-manager-fs-hash/actions/workflows/node.js.yml)
 [![npm package](https://img.shields.io/npm/v/cache-manager-fs-hash.svg)](https://www.npmjs.com/package/cache-manager-fs-hash)
 [![node](https://img.shields.io/node/v/cache-manager-fs-hash.svg)](https://nodejs.org)
 
