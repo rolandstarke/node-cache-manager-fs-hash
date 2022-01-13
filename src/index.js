@@ -106,11 +106,6 @@ DiskStore.prototype._readFile = async function (key) {
                 await this._unlock(filePath);
             }
         });
-        if (data.expireTime <= Date.now()) {
-            //cache expired
-            this.del(key).catch(() => 0 /* ignore */);
-            return undefined;
-        }
         if (data.key !== key) {
             //hash collision
             return undefined;
@@ -136,6 +131,11 @@ DiskStore.prototype._readFile = async function (key) {
 DiskStore.prototype.get = wrapCallback(async function (key) {
     const data = await this._readFile(key);
     if (data) {
+        if (data.expireTime <= Date.now()) {
+            //cache expired
+            this.del(key).catch(() => 0 /* ignore */);
+            return undefined;
+        }
         return data.val;
     } else {
         return data;
@@ -257,3 +257,5 @@ DiskStore.prototype._getFilePathByKey = function (key) {
         );
     }
 };
+
+exports.Store = DiskStore;
