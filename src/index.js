@@ -6,12 +6,12 @@ const lockFile = require('lockfile');
 const jsonFileStore = require('./json-file-store');
 const wrapCallback = require('./wrap-callback');
 
-
+const DEFAULT_EXPIRE_TIME = 60 * 60 * 1000
 /**
  * construction of the disk storage
  * @param {object} [args] options of disk store
  * @param {string} [args.path] path for cached files
- * @param {number} [args.ttl] time to life in seconds
+ * @param {number} [args.ttl] time to life in miliseconds
  * @param {boolean} [args.zip] zip content to save diskspace
  * @todo {number} [args.maxsize] max size in bytes on disk
  * @param {boolean} [args.subdirs] create subdirectories
@@ -26,7 +26,7 @@ function DiskStore(options) {
 
     this.options = {
         path: options.path || './cache', /* path for cached files  */
-        ttl: options.ttl >= 0 ? +options.ttl : 60 * 60, /* time before expiring in seconds */
+        ttl: options.ttl >= 0 ? +options.ttl : DEFAULT_EXPIRE_TIME, /* time before expiring in miliseconds */
         maxsize: options.maxsize || Infinity, /* max size in bytes on disk */
         subdirs: options.subdirs || false,
         zip: options.zip || false,
@@ -49,18 +49,17 @@ function DiskStore(options) {
  * save an entry in store
  * @param {string} key
  * @param {*} val
- * @param {object} [options]
- * @param {number} options.ttl time to life in seconds
+ * @param {number} ttl time to life in miliseconds
  * @param {function} [cb]
  * @returns {Promise}
  */
-DiskStore.prototype.set = wrapCallback(async function (key, val, options) {
+DiskStore.prototype.set = wrapCallback(async function (key, val, ttl) {
     key = key + '';
     const filePath = this._getFilePathByKey(key);
 
-    const ttl = (options && (options.ttl >= 0)) ? +options.ttl : this.options.ttl;
+    const ttlToSet = ttl >= 0 ? +ttl : this.options.ttl;
     const data = {
-        expireTime: Date.now() + ttl * 1000,
+        expireTime: Date.now() + ttlToSet,
         key: key,
         val: val,
     };
@@ -143,7 +142,7 @@ DiskStore.prototype.get = wrapCallback(async function (key) {
 });
 
 /**
- * get ttl in seconds for key in store
+ * get ttl in miliseconds for key in store
  * @param {string} key
  * @param {function} [cb]
  * @returns {Promise}
@@ -151,7 +150,7 @@ DiskStore.prototype.get = wrapCallback(async function (key) {
 DiskStore.prototype.ttl = wrapCallback(async function (key) {
     const data = await this._readFile(key);
     if (data) {
-        return (data.expireTime - Date.now()) / 1000;
+        return (data.expireTime - Date.now());
     } else {
         return 0;
     }
