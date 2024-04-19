@@ -4,7 +4,7 @@
 [![npm package](https://img.shields.io/npm/v/cache-manager-fs-hash.svg)](https://www.npmjs.com/package/cache-manager-fs-hash)
 [![node](https://img.shields.io/node/v/cache-manager-fs-hash.svg)](https://nodejs.org)
 
-A Filesystem store for the [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager) module
+A Filesystem store for the [node-cache-manager](https://github.com/jaredwray/cache-manager) module
 
 ## Installation
 
@@ -30,7 +30,7 @@ const diskCache = cacheManager.caching({
     store: fsStore,
     options: {
         path: 'diskcache', //path for cached files
-        ttl: 60 * 60,      //time to life in seconds
+        ttl: 60 * 1000,    //time to life in miliseconds (on cache-manager v5)
         subdirs: true,     //create subdirectories to reduce the
                            //files in a single dir (default: false)
         zip: true,         //zip files to save diskspace (default: false)
@@ -42,10 +42,14 @@ const diskCache = cacheManager.caching({
 
     await diskCache.set('key', 'value');
     console.log(await diskCache.get('key')); //"value"
-    console.log(await diskCache.ttl('key')); //3600 seconds
+    console.log(await diskCache.ttl('key')); // 5999 miliseconds
     await diskCache.del('key');
     console.log(await diskCache.get('key')); //undefined
 
+    await diskCache.set('key', 'value', 1000); // With custom TTL
+    console.log(await diskCache.get('key')); // "value"
+    console.log(await diskCache.ttl('key')); // 999 miliseconds
+    await diskCache.del('key');
 
     console.log(await getUserCached(5)); //{id: 5, name: '...'}
     console.log(await getUserCached(5)); //{id: 5, name: '...'}

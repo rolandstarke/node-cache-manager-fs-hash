@@ -162,7 +162,8 @@ describe('DiskStore', function () {
         });
 
         it('should not load expired data (set options)', async function () {
-            await cache.set('key', 'value', {ttl: 0});
+            const ttl = 0
+            await cache.set('key', 'value', ttl);
             const loadedValue = await cache.get('key');
             assert.strictEqual(undefined, loadedValue);
         });
@@ -302,10 +303,12 @@ describe('DiskStore', function () {
     describe('set() and ttl()', function () {
 
         it('should get the right ttl', async function () {
-            const cache = store.create({path: cacheDirectory, ttl: 10});
+            const setttl = 10,
+                fsReadDelayTime = setttl - 2; // The time is expressed in miliseconds, the read operation should be taken as diff
+            const cache = store.create({path: cacheDirectory, ttl: setttl});
             await cache.set('key', 'value');
             const ttl = Math.round(await cache.ttl('key'));
-            assert.strictEqual(10, ttl);
+            assert( ttl >= fsReadDelayTime && ttl <= setttl);
         });
 
     });
