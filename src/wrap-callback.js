@@ -1,6 +1,6 @@
 /**
- * adds an callback param to the original function
- * @param {function} fn 
+ * adds a callback param to the original function
+ * @param {function} fn
  * @returns {function}
  */
 module.exports = function wrapCallback(fn) {

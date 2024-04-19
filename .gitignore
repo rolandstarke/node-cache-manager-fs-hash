@@ -1,2 +1,5 @@
 node_modules
 examples/diskcache/
+diskcache/
+test/cache/
+.idea

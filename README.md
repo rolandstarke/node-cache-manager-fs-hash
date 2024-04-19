@@ -4,12 +4,12 @@
 [![npm package](https://img.shields.io/npm/v/cache-manager-fs-hash.svg)](https://www.npmjs.com/package/cache-manager-fs-hash)
 [![node](https://img.shields.io/node/v/cache-manager-fs-hash.svg)](https://nodejs.org)
 
-A Filesystem store for the [node-cache-manager](https://github.com/jaredwray/cache-manager) module
+Package to cache key-value pairs in JSON files.
 
 ## Installation
 
 ```sh
-npm install cache-manager-fs-hash --save
+npm install cache-manager-fs-hash
 ```
 
 ## Features
@@ -23,47 +23,58 @@ npm install cache-manager-fs-hash --save
 Here is an example that demonstrates how to implement the Filesystem cache store.
 
 ```javascript
-const cacheManager = require('cache-manager');
-const fsStore = require('cache-manager-fs-hash');
+const {DiskStore} = require('cache-manager-fs-hash');
 
-const diskCache = cacheManager.caching({
-    store: fsStore,
-    options: {
-        path: 'diskcache', //path for cached files
-        ttl: 60 * 1000,    //time to life in miliseconds (on cache-manager v5)
-        subdirs: true,     //create subdirectories to reduce the
-                           //files in a single dir (default: false)
-        zip: true,         //zip files to save diskspace (default: false)
-    }
+const diskStore = new DiskStore({
+    path: 'diskcache', // path for cached files (default: '.cache/')
+    ttl: 60 * 10 * 1000, // time to life in milliseconds (default: Infinity never expires)
+    zip: true, // zip files to save disk space (default: false)
 });
+
+(async () => {
+    await diskStore.set('key', 'value');
+    console.log(await diskStore.get('key')); //"value"
+
+    await diskStore.del('key');
+    console.log(await diskStore.get('key')); // undefined
+
+    await diskStore.set('key', 'value', 1000); // with custom TTL
+    console.log(await diskStore.ttl('key')); // 999 milliseconds
+
+    // delete stored files
+    await diskStore.reset();
+})();
+```
+
+Here is an example that demonstrates how use the store with the [node-cache-manager](https://github.com/jaredwray/cache-manager) module.
+
+```javascript
+const cacheManager = require('cache-manager');
+const {DiskStore} = require('cache-manager-fs-hash');
+
+const diskCache = cacheManager.createCache(new DiskStore({
+    path: 'diskcache', // path for cached files
+    // ... other options
+}));
 
 
 (async () => {
 
     await diskCache.set('key', 'value');
-    console.log(await diskCache.get('key')); //"value"
-    console.log(await diskCache.ttl('key')); // 5999 miliseconds
-    await diskCache.del('key');
-    console.log(await diskCache.get('key')); //undefined
-
-    await diskCache.set('key', 'value', 1000); // With custom TTL
     console.log(await diskCache.get('key')); // "value"
-    console.log(await diskCache.ttl('key')); // 999 miliseconds
-    await diskCache.del('key');
 
-    console.log(await getUserCached(5)); //{id: 5, name: '...'}
-    console.log(await getUserCached(5)); //{id: 5, name: '...'}
-
-    await diskCache.reset();
+    console.log(await getUserCached(5)); // {id: 5, name: '...'}
+    console.log(await getUserCached(5)); // {id: 5, name: '...'}
 
     function getUserCached(userId) {
-        return diskCache.wrap(userId /* cache key */, function () {
+        return diskCache.wrap(userId, function () {
             return getUser(userId);
         });
     }
 
     async function getUser(userId) {
-        return {id: userId, name: '...'};
+        await new Promise(r => setTimeout(r, 1000)); //sleep 0.1 second
+        return {id: userId, name: '...' + Math.random()};
     }
 
 })();
