@@ -47,7 +47,7 @@ const diskStore = new DiskStore({
 })();
 ```
 
-Here is an example that demonstrates how use the store with the [node-cache-manager](https://github.com/jaredwray/cache-manager) module.
+Here is an example that demonstrates how to use the store with the [node-cache-manager](https://github.com/jaredwray/cache-manager) module.
 
 ```javascript
 const cacheManager = require('cache-manager');
@@ -74,7 +74,7 @@ const diskCache = cacheManager.createCache(new DiskStore({
     }
 
     async function getUser(userId) {
-        await new Promise(r => setTimeout(r, 1000)); //sleep 0.1 second
+        await new Promise(r => setTimeout(r, 100)); //sleep 0.1 second
         return {id: userId, name: '...' + Math.random()};
     }
 
