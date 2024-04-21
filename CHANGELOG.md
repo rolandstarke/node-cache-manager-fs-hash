@@ -1,12 +1,15 @@
 # Changelog
 
-## [2.0.0]
+## [2.0.0] - 2024-04-21
 
 - Changed `ttl` unit from seconds to milliseconds to be compatible with cache-manager version 5
-- Changed `ttl` default to `Infinity` to never expire
+- Changed `ttl` default to never expire
 - Changed `subdirs` default to `true` as it is a reasonable default and removed it from the readme
-- Added `DiskStore` to export
 - Dropped support for Node.js below version 18
+
+## [1.1.0] - 2024-04-21
+
+- Added `DiskStore` to export
 
 ## [0.0.9] - 2020-06-12
 

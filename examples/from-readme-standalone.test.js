@@ -1,8 +1,9 @@
 const {DiskStore} = require('..'); // replace with 'cache-manager-fs-hash'!
 
 const diskStore = new DiskStore({
-    path: 'diskcache', // path for cached files (default: '.cache/')
-    ttl: 60 * 10 * 1000, // time to life in milliseconds (default: Infinity never expires)
+    path: 'diskcache', // path for cached files (default: cache)
+    ttl: 60 * 60 * 1000, // time to life in milliseconds
+                         // (default: never expires)
     zip: true, // zip files to save disk space (default: false)
 });
 
