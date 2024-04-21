@@ -9,7 +9,7 @@ const diskStore = new DiskStore({
 
 (async () => {
     await diskStore.set('key', 'value');
-    console.log(await diskStore.get('key')); //"value"
+    console.log(await diskStore.get('key')); // "value"
 
     await diskStore.del('key');
     console.log(await diskStore.get('key')); // undefined

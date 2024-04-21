@@ -22,7 +22,7 @@ const diskCache = cacheManager.createCache(new DiskStore({
     }
 
     async function getUser(userId) {
-        await new Promise(r => setTimeout(r, 100)); //sleep 0.1 second
+        await new Promise(r => setTimeout(r, 100)); // sleep 0.1 seconds
         return {id: userId, name: '...' + Math.random()};
     }
 
