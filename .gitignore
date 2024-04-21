@@ -1,5 +1,6 @@
 node_modules
 examples/diskcache/
-diskcache/
+examples/diskcache-cache-manager/
+examples/diskcache-standalone/
 test/cache/
 .idea

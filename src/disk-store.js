@@ -179,7 +179,11 @@ class DiskStore {
                     await fs.rmdir(joinedPath).catch(() => 0 /* ignore */);
                 } else if (file.isFile() && /[/\\]diskstore-[0-9a-fA-F/\\]+(\.json|-\d\.bin)/.test(joinedPath)) {
                     //delete the file if it is a diskstore file
-                    await fs.unlink(joinedPath);
+                    await fs.unlink(joinedPath).catch(err => {
+                        if (err.code !== 'ENOENT') {
+                            throw err;
+                        }
+                    });
                 }
             }
         }
@@ -196,6 +200,7 @@ class DiskStore {
         if (keyValues.length % 2 === 1) {
             ttl = keyValues.pop();
         }
+
         function chunk(arr, size) {
             return Array.from({length: Math.ceil(arr.length / size)}, (v, i) =>
                 arr.slice(i * size, i * size + size)
