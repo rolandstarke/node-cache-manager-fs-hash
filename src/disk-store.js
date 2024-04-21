@@ -164,24 +164,22 @@ class DiskStore {
      * @return {Promise<void>}
      */
     async reset() {
-        return await deletePath(this.#options.path, 2, false);
+        return await deletePath(this.#options.path, 2);
 
-        async function deletePath(dir, maxDeep, deleteEmptyDir) {
+        async function deletePath(dir, maxDeep) {
             if (maxDeep < 0) {
                 return;
             }
             const files = await fs.readdir(dir, {withFileTypes: true});
             for (let file of files) {
-                const fullPath = path.join(dir, file.name);
-                if (file.isDirectory() && /[/\\]diskstore-[0-9a-fA-F/\\]+/.test(fullPath)) {
-                    await deletePath(path.join(dir, file.name), maxDeep - 1, true);
-                    if (deleteEmptyDir) {
-                        //delete the now empty subdir
-                        await fs.rmdir(fullPath).catch(() => 0 /* ignore */);
-                    }
-                } else if (file.isFile() && /[/\\]diskstore-[0-9a-fA-F/\\]+(\.json|-\d\.bin)/.test(fullPath)) {
+                const joinedPath = path.join(dir, file.name);
+                if (file.isDirectory() && /[/\\]diskstore-[0-9a-fA-F/\\]+/.test(joinedPath)) {
+                    await deletePath(joinedPath, maxDeep - 1);
+                    //delete the now empty subdir
+                    await fs.rmdir(joinedPath).catch(() => 0 /* ignore */);
+                } else if (file.isFile() && /[/\\]diskstore-[0-9a-fA-F/\\]+(\.json|-\d\.bin)/.test(joinedPath)) {
                     //delete the file if it is a diskstore file
-                    await fs.unlink(fullPath);
+                    await fs.unlink(joinedPath);
                 }
             }
         }

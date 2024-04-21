@@ -27,7 +27,7 @@ describe('DiskStore', {timeout: 10000}, function () {
 
     describe('construction', function () {
         it('should create cache dir', async function () {
-            await fs.access(cacheDirectory)
+            await fs.access(cacheDirectory);
         });
     });
 
@@ -273,7 +273,25 @@ describe('DiskStore', {timeout: 10000}, function () {
             assert.strictEqual(0, await countFiles(cacheDirectory));
         });
 
+        it('should delete all sub folders on reset', async function () {
+            await cache.set('key', 'value');
+            await cache.reset();
+            assert.strictEqual(0, (await fs.readdir(cacheDirectory)).length);
+        });
+
+
+
     });
+
+    describe('reset()', function () {
+
+        it('should not delete cache folder on reset', async function () {
+            await cache.reset();
+            await fs.access(cacheDirectory);
+        });
+
+    });
+
 
 
     describe('set() and ttl()', function () {
