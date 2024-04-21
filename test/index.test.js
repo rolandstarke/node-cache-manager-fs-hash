@@ -1,64 +1,52 @@
+const {describe, it, beforeEach, after} = require('node:test');
 const assert = require('assert');
-const fs = require('fs');
-const removeDir = require('rimraf');
+const fs = require('fs/promises');
 const store = require('../index.js');
+const countFiles = require('./utils/count-files');
 const cacheDirectory = __dirname + '/cache';
 
-function countFilesInCacheDir() {
-    return fs.readdirSync(cacheDirectory).length;
-}
 
-describe('DiskStore', function () {
 
+
+describe('DiskStore', {timeout: 10000}, function () {
+
+    /**
+     * @type {DiskStore}
+     */
     let cache;
     // remove test directory before each test
-    beforeEach(function (done) {
-        removeDir(cacheDirectory, function (err) {
-            cache = store.create({path: cacheDirectory});
-            done(err);
-        });
+    beforeEach(async function () {
+        await fs.rm(cacheDirectory, {recursive: true, force: true});
+        cache = store.create({path: cacheDirectory});
     });
     // remove test directory after last test
-    after(function (done) {
-        removeDir(cacheDirectory, done);
+    after(async function () {
+        await fs.rm(cacheDirectory, {recursive: true, force: true});
     });
 
 
     describe('construction', function () {
-        it('should create cache dir', function () {
-            assert(fs.existsSync(cache.options.path));
+        it('should create cache dir', async function () {
+            await fs.access(cacheDirectory)
         });
-
     });
 
 
     describe('get()', function () {
-
-        it('should return undefined on non existing key callback', function (done) {
-            cache.get('not existing key', function (err, data) {
-                assert.strictEqual(null, err);
-                assert.strictEqual(undefined, data);
-                done();
-            });
-        });
 
         it('should return undefined on non existing key promise', async function () {
             const data = await cache.get('not existing key');
             assert.strictEqual(undefined, data);
         });
 
-        it('should not be that slow reading the same non existing cache key sequentially', async function () {
-            this.slow(30);
-
+        it('should not be that slow reading the same non existing cache key sequentially', {timeout: 30}, async function () {
             for (let i = 0; i < 30; i++) {
                 const data = await cache.get('not existing key');
                 assert.strictEqual(undefined, data);
             }
         });
 
-        it('should not be that slow reading the same non existing cache key parallel', async function () {
-            this.slow(100);
-
+        it('should not be that slow reading the same non existing cache key parallel', {timeout: 100}, async function () {
             for (let i = 0; i < 20; i++) {
                 await Promise.all([1, 2, 3, 4, 5].map(async function () {
                     const data = await cache.get('not existing key');
@@ -67,9 +55,7 @@ describe('DiskStore', function () {
             }
         });
 
-        it('should not be that slow reading different non existing cache keys parallel', async function () {
-            this.slow(30);
-
+        it('should not be that slow reading different non existing cache keys parallel', {timeout: 30}, async function () {
             await Promise.all(Array.apply(null, Array(30)).map(async function (v, i) {
                 const data = await cache.get('not existing key' + i);
                 assert.strictEqual(undefined, data);
@@ -82,14 +68,14 @@ describe('DiskStore', function () {
 
         it('should create a file for each saved value', async function () {
             await cache.set('key', 'value');
-            assert.strictEqual(1, countFilesInCacheDir());
+            assert.strictEqual(1, await countFiles(cacheDirectory));
             await cache.set('key2', 'value');
-            assert.strictEqual(2, countFilesInCacheDir());
+            assert.strictEqual(2, await countFiles(cacheDirectory));
         });
 
-        it('should save buffers in seperate files promise', async function () {
+        it('should save buffers in separate files promise', async function () {
             await cache.set('key', Buffer.alloc(100000));
-            assert.strictEqual(2, countFilesInCacheDir());
+            assert.strictEqual(2, await countFiles(cacheDirectory));
         });
 
         it('should not modify the value while saving', async function () {
@@ -116,20 +102,17 @@ describe('DiskStore', function () {
 
     describe('del()', function () {
 
-        it('should not do anything deleting nonexisting key', async function () {
-            this.slow(20);
-            const cache = store.create({path: cacheDirectory});
-            await cache.del('nonexisting key');
+        it('should not do anything deleting nonexistent key', async function () {
+            const cache = store.create({path: cacheDirectory, subdirs: false});
+            await cache.del('nonexistent key');
         });
 
-        it('should not do anything deleting nonexisting key (subdirs)', async function () {
-            this.slow(20);
+        it('should not do anything deleting nonexistent key (subdirs)', async function () {
             const cache = store.create({path: cacheDirectory, subdirs: true});
-            await cache.del('nonexisting key');
+            await cache.del('nonexistent key');
         });
 
     });
-
 
     describe('set() and get()', function () {
 
@@ -141,11 +124,8 @@ describe('DiskStore', function () {
         });
 
         it('should load the same value that was saved (large buffers)', async function () {
-            this.slow(500);
-            this.timeout(30000);
-
             const originalValue = {
-                smallbuffer: Buffer.from('Hello World!'),
+                smallBuffer: Buffer.from('Hello World!'),
                 largeBuffer: Buffer.alloc(1000 * 1000 * 10 /* 10MB */, 5),
                 largeBuffer2: Buffer.alloc(1000 * 1000 * 5 /* 5MB */, 100)
             };
@@ -162,7 +142,8 @@ describe('DiskStore', function () {
         });
 
         it('should not load expired data (set options)', async function () {
-            await cache.set('key', 'value', {ttl: 0});
+            const ttl = 0
+            await cache.set('key', 'value', ttl);
             const loadedValue = await cache.get('key');
             assert.strictEqual(undefined, loadedValue);
         });
@@ -193,16 +174,13 @@ describe('DiskStore', function () {
 
         it('should work with subdirs', async function () {
             const cache = store.create({path: cacheDirectory, subdirs: true});
-            const originalValue = {int: 8, bool: true, float: 0.9, string: 'dsfsdöv'};
+            const originalValue = {int: 8, bool: true, float: 0.9, string: 'hi ö'};
             await cache.set('(simple object)', originalValue);
             const loadedValue = await cache.get('(simple object)');
             assert.deepStrictEqual(originalValue, loadedValue);
         });
 
         it('should be able to set & get a value on different instances simultaneously', async function () {
-            this.slow(600);
-            this.timeout(5000);
-
             const cache1 = store.create({path: cacheDirectory});
             const cache2 = store.create({path: cacheDirectory});
             const cache3 = store.create({path: cacheDirectory});
@@ -277,13 +255,12 @@ describe('DiskStore', function () {
 
     });
 
-    //todo implement del
     describe('set() and del()', function () {
 
         it('should delete files when deleting a value', async function () {
             await cache.set('key', Buffer.alloc(100000));
             await cache.del('key');
-            assert.strictEqual(0, countFilesInCacheDir());
+            assert.strictEqual(0, await countFiles(cacheDirectory));
         });
 
     });
@@ -292,20 +269,51 @@ describe('DiskStore', function () {
 
         it('should delete all files on reset', async function () {
             await cache.set('key', 'value');
-            await cache.reset('key');
-            assert.strictEqual(0, countFilesInCacheDir());
+            await cache.reset();
+            assert.strictEqual(0, await countFiles(cacheDirectory));
         });
 
     });
 
-    
+
     describe('set() and ttl()', function () {
 
         it('should get the right ttl', async function () {
-            const cache = store.create({path: cacheDirectory, ttl: 10});
+            const ttl = 1000;
+            const ttlTolerance = 50;
+            const cache = store.create({path: cacheDirectory, ttl: ttl});
             await cache.set('key', 'value');
-            const ttl = Math.round(await cache.ttl('key'));
-            assert.strictEqual(10, ttl);
+            const leftTtl = await cache.ttl('key');
+            assert(leftTtl <= ttl && leftTtl > ttl - ttlTolerance);
+        });
+
+    });
+
+    describe('mget()', function () {
+
+        it('should receive multiple keys at once', async function () {
+            await cache.set('key', 'value');
+            await cache.set('key2', 'value2');
+            assert.deepStrictEqual(['value', 'value2', undefined], await cache.mget('key', 'key2', 'key3'));
+        });
+
+    });
+
+    describe('mset()', function () {
+
+        it('should set multiple keys at once', async function () {
+            await cache.mset('key', 'value', 'key2', 'value2');
+            assert.deepStrictEqual(['value', 'value2', undefined], await cache.mget('key', 'key2', 'key3'));
+        });
+
+    });
+
+    describe('mdel()', function () {
+
+        it('should delete multiple keys at once', async function () {
+            await cache.mset('key', 'value', 'key2', 'value2', 'key3', 'value3');
+            await cache.mdel('key', 'key2', 'bla');
+            assert.deepStrictEqual([undefined, undefined, 'value3'], await cache.mget('key', 'key2', 'key3'));
         });
 
     });
