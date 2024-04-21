@@ -43,6 +43,11 @@ function DiskStore(options) {
     if (!fs.existsSync(this.options.path)) {
         fs.mkdirSync(this.options.path);
     }
+
+    // for compatibility reasons with cache-manager-v4 we set the store property
+    // this allows calling cacheManager.caching(new DiskStore()) with cache-manager-v4 and cache-manager-v5
+    // noinspection JSUnusedGlobalSymbols
+    this.store = this;
 }
 
 /**
@@ -57,6 +62,11 @@ function DiskStore(options) {
 DiskStore.prototype.set = wrapCallback(async function (key, val, options) {
     key = key + '';
     const filePath = this._getFilePathByKey(key);
+
+    //the ttl is passed directly in cache-manager v5
+    if (typeof options !== 'object') {
+        options = {ttl: options};
+    }
 
     const ttl = (options && (options.ttl >= 0)) ? +options.ttl : this.options.ttl;
     const data = {
@@ -257,3 +267,5 @@ DiskStore.prototype._getFilePathByKey = function (key) {
         );
     }
 };
+
+exports.DiskStore = DiskStore;
