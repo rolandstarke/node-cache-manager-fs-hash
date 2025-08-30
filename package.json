@@ -1,6 +1,6 @@
 {
   "name": "cache-manager-fs-hash",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "main": "index.js",
   "engines": {
     "node": ">=18.0.0"
