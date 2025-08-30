@@ -49,7 +49,7 @@ const diskStore = new DiskStore({
 })();
 ```
 
-Here is an example that demonstrates how to use the store with the [node-cache-manager](https://github.com/jaredwray/cache-manager) module.
+Here is an example that demonstrates how to use the store with the [node-cache-manager](https://www.npmjs.com/package/cache-manager) module.
 
 ```javascript
 const cacheManager = require('cache-manager');
