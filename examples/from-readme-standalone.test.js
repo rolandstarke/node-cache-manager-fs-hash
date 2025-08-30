@@ -20,5 +20,5 @@ const diskStore = new DiskStore({
     console.log(await diskStore.ttl('key')); // 999 milliseconds
 
     // delete stored files
-    //await diskStore.reset();
+    await diskStore.reset();
 })();
