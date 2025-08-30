@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.0.0] - 2025-08-30
+
+- Added `hash` option. Can be set to false to use the plain key as filename instead of the hashed key
+- Added support to save `Map`, `Set`, `BigInt`, `Error`, `ArrayBuffer` and TypedArrays (e.g. `Int8Array`, ...)
+
 ## [2.0.0] - 2024-04-21
 
 - Changed `ttl` unit from seconds to milliseconds to be compatible with cache-manager version 5

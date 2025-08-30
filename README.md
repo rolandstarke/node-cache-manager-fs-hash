@@ -20,16 +20,18 @@ npm install cache-manager-fs-hash
 
 ## Usage example
 
-Here is an example that demonstrates how to implement the Filesystem cache store.
+Here is an example that demonstrates how to use the filesystem cache store.
 
 ```javascript
-const {DiskStore} = require('cache-manager-fs-hash');
+const { DiskStore } = require('cache-manager-fs-hash');
 
 const diskStore = new DiskStore({
     path: 'diskcache', // path for cached files (default: cache)
     ttl: 60 * 60 * 1000, // time to live in milliseconds 
                          // (default: never expires)
     zip: true, // zip files to save disk space (default: false)
+    hash: false, // keys are hashed to generate filenames (default: true)
+                 // set to false to use plain keys as filenames
 });
 
 (async () => {
@@ -83,7 +85,7 @@ const diskCache = cacheManager.createCache(new DiskStore({
 
 ## How it works
 
-The filename is determined by the md5 hash of the `key`. (The `key` is also saved in the file to detect hash collisions. In this case it will just return a cache miss). Writing is performed with .lock files so that multiple instances of the library (e.g. using the cluster module) do not interfere with one another.
+The library saves each cached item as a separate file under the specified directory. Writes use a `.lock` file to ensure that multiple instances accessing the same cache file do not interfere with each other.
 
 ## Tests
 

@@ -28,6 +28,7 @@ class DiskStore {
             ttl: +(options.ttl ?? Infinity), /* time before expiring in milliseconds */
             //maxsize: options.maxsize || Infinity, /* max size in bytes on disk, not used yet */
             subdirs: options.subdirs ?? true,
+            hash: options.hash ?? true,
             zip: options.zip || false,
             lockFile: { //check lock at 0ms 50ms 100ms ... 400ms 1400ms 1450ms... up to 10 seconds, after that just assume the lock is staled
                 wait: 400,
@@ -170,14 +171,14 @@ class DiskStore {
             if (maxDeep < 0) {
                 return;
             }
-            const files = await fs.readdir(dir, {withFileTypes: true});
+            const files = await fs.readdir(dir, { withFileTypes: true });
             for (let file of files) {
                 const joinedPath = path.join(dir, file.name);
-                if (file.isDirectory() && /[/\\]diskstore-[0-9a-fA-F/\\]+/.test(joinedPath)) {
+                if (file.isDirectory() && /[/\\]diskstore-[/\\a-zA-Z0-9_-]+/.test(joinedPath)) {
                     await deletePath(joinedPath, maxDeep - 1);
                     //delete the now empty subdir
                     await fs.rmdir(joinedPath).catch(() => 0 /* ignore */);
-                } else if (file.isFile() && /[/\\]diskstore-[0-9a-fA-F/\\]+(\.json|-\d\.bin)/.test(joinedPath)) {
+                } else if (file.isFile() && /[/\\]diskstore-[/\\a-zA-Z0-9_-]+(\.json|-\d\.bin)/.test(joinedPath)) {
                     //delete the file if it is a diskstore file
                     await fs.unlink(joinedPath).catch(err => {
                         if (err.code !== 'ENOENT') {
@@ -202,7 +203,7 @@ class DiskStore {
         }
 
         function chunk(arr, size) {
-            return Array.from({length: Math.ceil(arr.length / size)}, (v, i) =>
+            return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
                 arr.slice(i * size, i * size + size)
             );
         }
@@ -293,18 +294,24 @@ class DiskStore {
      * @return {string}
      */
     #getFilePathByKey(key) {
-        const hash = crypto.createHash('md5').update(key + '').digest('hex');
+        let filename;
+        if (this.#options.hash) {
+            filename = crypto.createHash('md5').update(key + '').digest('hex');
+        } else {
+            filename = key.replaceAll(/[^a-zA-Z0-9_-]/g, '_');
+        }
+
         if (this.#options.subdirs) {
-            //create subdirs with the first 3 chars of the hash
+            //create subdirs with the first 3 chars of the filename
             return path.join(
                 this.#options.path,
-                'diskstore-' + hash.substring(0, 3),
-                hash.substring(3),
+                'diskstore-' + filename.substring(0, 3),
+                filename.substring(3),
             );
         } else {
             return path.join(
                 this.#options.path,
-                'diskstore-' + hash
+                'diskstore-' + filename
             );
         }
     }
