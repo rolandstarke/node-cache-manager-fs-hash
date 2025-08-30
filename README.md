@@ -53,7 +53,7 @@ Here is an example that demonstrates how to use the store with the [node-cache-m
 
 ```javascript
 const cacheManager = require('cache-manager');
-const {DiskStore} = require('cache-manager-fs-hash');
+const { DiskStore } = require('cache-manager-fs-hash');
 
 const diskCache = cacheManager.createCache(new DiskStore({
     path: 'diskcache', // path for cached files

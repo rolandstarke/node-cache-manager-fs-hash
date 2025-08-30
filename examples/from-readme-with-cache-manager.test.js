@@ -1,5 +1,5 @@
 const cacheManager = require('cache-manager');
-const {DiskStore} = require('..'); //replace with 'cache-manager-fs-hash'!
+const { DiskStore } = require('..'); //replace with 'cache-manager-fs-hash'!
 
 const diskCache = cacheManager.createCache(new DiskStore({
     path: __dirname + '/diskcache-cache-manager', // path for cached files

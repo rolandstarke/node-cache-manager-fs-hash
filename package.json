@@ -30,7 +30,9 @@
     "test": "node --test"
   },
   "devDependencies": {
-    "cache-manager": "^5.5.1",
+    "cache-manager": "^7.2.0",
+    "cache-manager-v7": "npm:cache-manager@^7.2.0",
+    "cache-manager-v5": "npm:cache-manager@^5.5.1",
     "cache-manager-v4": "npm:cache-manager@^4.1.0",
     "cache-manager-fs-hash-v2": "npm:cache-manager-fs-hash@^2.0.0"
   },

@@ -18,6 +18,7 @@ class DiskStore {
      * @param {number} [options.ttl] time to life in milliseconds
      * @param {boolean} [options.zip] zip content to save disk space
      * @param {boolean} [options.subdirs] create subdirectories
+     * @param {boolean} [options.hash] hash key for filename
      * @returns {DiskStore}
      */
     constructor(options) {
@@ -27,7 +28,7 @@ class DiskStore {
             path: options.path || './cache', /* path for cached files  */
             ttl: +(options.ttl ?? Infinity), /* time before expiring in milliseconds */
             //maxsize: options.maxsize || Infinity, /* max size in bytes on disk, not used yet */
-            subdirs: options.subdirs ?? true,
+            subdirs: options.subdirs ?? (options.hash ?? true), // if we don't hash the file name, dont use subdirs by default
             hash: options.hash ?? true,
             zip: options.zip || false,
             lockFile: { //check lock at 0ms 50ms 100ms ... 400ms 1400ms 1450ms... up to 10 seconds, after that just assume the lock is staled
@@ -58,6 +59,18 @@ class DiskStore {
         // this allows calling cacheManager.caching(new DiskStore()) with cache-manager-v4 and cache-manager-v5
         // noinspection JSUnusedGlobalSymbols
         this.store = this;
+
+        // for compatibility with cache-manager-v7 we add new method names
+        this.delete = this.del;
+        this.clear = this.reset;
+        this.getMany = this.mget;
+        this.setMany = this.mset;
+        this.deleteMany = this.mdel;
+
+        // for compatibility reasons with cache-manager-v7 we set the stores property
+        // this allows calling cacheManager.caching(new DiskStore()) with cache-manager-v4 and cache-manager-v5
+        this.stores = [this];
+        this.ttl = this.ttl.bind(this); // needed for cache-manager-v7 as well
     }
 
     /**
@@ -131,6 +144,15 @@ class DiskStore {
         } else {
             return 0;
         }
+    }
+
+    /**
+     * checks if a value is stored for a given key
+     * @param {string} key 
+     * @returns {Promise}
+     */
+    async has(key) {
+        return !!await this.#readFile(key);
     }
 
     /**
